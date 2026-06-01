@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng: Đường đi của 1 tin nhắn trong Kafka</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .network-graph {
+            position: relative;
+            width: 100%;
+            height: 550px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .lines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* Các khối bao bọc (Cluster / Group) */
+        .group-box {
+            position: absolute;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 1;
+            padding: 10px;
+            transform: translate(-50%, -50%);
+        }
+        
+        .group-title {
+            position: absolute;
+            top: -12px; left: 15px;
+            background: #f8fafc;
+            padding: 0 5px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #64748b;
+        }
+
+        #cluster-box { top: 300px; left: 50%; width: 280px; height: 350px; border-color: #f97316; }
+        #consumer-group-box { top: 300px; left: 85%; width: 200px; height: 260px; border-color: #10b981; }
+
+        /* Các Node chính */
+        .node {
+            position: absolute;
+            z-index: 2;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.5s ease;
+            width: 150px;
+        }
+
+        .node h4 { margin: 0 0 5px 0; font-size: 14px; }
+        .node p { margin: 0; font-size: 11px; color: #64748b; }
+        
+        .node-status {
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 5px;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .node.active { transform: translate(-50%, -50%) scale(1.08); }
+
+        /* Vị trí các Node */
+        #producer { top: 300px; left: 15%; border-color: #3b82f6; }
+        #zookeeper { top: 70px; left: 50%; border-color: #eab308; width: 200px; }
+        #broker-1 { top: 220px; left: 50%; border-color: #f97316; }
+        #broker-2 { top: 400px; left: 50%; border-color: #fb923c; }
+        #consumer-1 { top: 230px; left: 85%; border-color: #10b981; }
+        #consumer-2 { top: 370px; left: 85%; border-color: #10b981; opacity: 0.6; } /* Consumer 2 mờ đi vì ko xử lý tin này */
+
+        /* Partition box inside Broker */
+        .partition {
+            margin-top: 5px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            padding: 4px;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .offset-badge { background: #3b82f6; color: white; padding: 2px 5px; border-radius: 10px; }
+
+        /* Gói tin */
+        .packet {
+            position: absolute;
+            z-index: 3;
+            width: 24px; height: 24px;
+            background: #3b82f6;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: top 1.5s ease-in-out, left 1.5s ease-in-out, background-color 0.5s;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 11px; color: white; font-weight: bold;
+            box-shadow: 0 0 10px #3b82f6;
+        }
+        
+        .packet-replica { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+        .packet-pull { background: #10b981; box-shadow: 0 0 10px #10b981; }
+
+        /* Log hệ thống */
+        .system-log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .log-time { color: #94a3b8; margin-right: 10px; }
+        .log-step { color: #fcd34d; font-weight: bold; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #34d399; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; margin-top: 0;">Mô phỏng: Vòng đời 1 tin nhắn trong Kafka</h2>
+    
+    <div class="controls">
+        <button id="btnSend" onclick="runSimulation()">Bắn Tin Nhắn</button>
+    </div>
+
+    <div class="network-graph">
+        <div class="group-box" id="cluster-box">
+            <span class="group-title">KAFKA CLUSTER</span>
+        </div>
+        <div class="group-box" id="consumer-group-box">
+            <span class="group-title">CONSUMER GROUP 'A'</span>
+        </div>
+
+        <svg class="lines">
+            <line x1="15%" y1="300" x2="50%" y2="70" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4,4" id="line-zk" />
+            <line x1="15%" y1="300" x2="50%" y2="220" stroke="#cbd5e1" stroke-width="2" />
+            <line x1="50%" y1="220" x2="50%" y2="400" stroke="#fdba74" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="50%" y1="220" x2="85%" y2="230" stroke="#cbd5e1" stroke-width="2" />
+        </svg>
+
+        <div class="node" id="zookeeper">
+            <h4>🧠 Zookeeper / KRaft</h4><p>Controller</p>
+            <div class="node-status" id="status-zk">Quản lý Metadata cụm</div>
+        </div>
+
+        <div class="node" id="producer">
+            <h4>🚀 Producer</h4><p>Nguồn phát dữ liệu</p>
+            <div class="node-status" id="status-producer">Sẵn sàng</div>
+        </div>
+        
+        <div class="node" id="broker-1">
+            <h4>🖥️ Broker 1 (Leader)</h4><p>Topic: sensor-data</p>
+            <div class="partition"><span>Partition-0</span> <span class="offset-badge" id="offset-b1">Off: 100</span></div>
+        </div>
+
+        <div class="node" id="broker-2">
+            <h4>🖥️ Broker 2 (Follower)</h4><p>Topic: sensor-data</p>
+            <div class="partition"><span>Partition-0 (Bản sao)</span> <span class="offset-badge" id="offset-b2">Off: 100</span></div>
+        </div>
+        
+        <div class="node" id="consumer-1">
+            <h4>📥 Consumer 1</h4><p>Đọc Partition-0</p>
+            <div class="node-status" id="status-c1">Đang chờ Pull...</div>
+        </div>
+
+        <div class="node" id="consumer-2">
+            <h4>📥 Consumer 2</h4><p>Đọc Partition-1</p>
+            <div class="node-status">Đang đợi (Idle)</div>
+        </div>
+
+        <div class="packet" id="packet-main">M</div>
+        <div class="packet" id="packet-replica">R</div>
+    </div>
+
+    <h3>Terminal Log (Real-time)</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    let currentOffset = 100;
+    const logContainer = document.getElementById('logContainer');
+    const nodes = {
+        producer: document.getElementById('producer'),
+        zk: document.getElementById('zookeeper'),
+        b1: document.getElementById('broker-1'),
+        b2: document.getElementById('broker-2'),
+        c1: document.getElementById('consumer-1')
+    };
+
+    function addLog(step, text, type = 'info') {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('div');
+        let typeClass = type === 'success' ? 'log-success' : 'log-info';
+        p.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-step">[${step}]</span> <span class="${typeClass}">${text}</span>`;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function highlightNode(nodeKey, color) {
+        nodes[nodeKey].style.borderColor = color;
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        setTimeout(() => {
+            nodes[nodeKey].classList.remove('active');
+            setTimeout(() => nodes[nodeKey].style.boxShadow = 'none', 500);
+        }, 1500);
+    }
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    async function runSimulation() {
+        document.getElementById('btnSend').disabled = true;
+        logContainer.innerHTML = '';
+        
+        const pktMain = document.getElementById('packet-main');
+        const pktRep = document.getElementById('packet-replica');
+        
+        // Reset packets
+        pktMain.style.opacity = '0'; pktMain.className = 'packet';
+        pktRep.style.opacity = '0'; pktRep.className = 'packet packet-replica';
+
+        // BƯỚC 1: PRODUCER & ZOOKEEPER
+        addLog('BƯỚC 1', 'Producer tạo Message: {"temp": 35.5}. Cần tìm nơi gửi đến.', 'info');
+        highlightNode('producer', '#3b82f6');
+        document.getElementById('status-producer').innerText = 'Đang lấy Metadata...';
+        await delay(1000);
+
+        addLog('BƯỚC 1.5', 'Producer hỏi Zookeeper/KRaft: "Ai là Leader của Partition-0?" -> KRaft trả lời: "Là Broker 1".', 'info');
+        document.getElementById('line-zk').style.stroke = '#eab308';
+        highlightNode('zk', '#eab308');
+        await delay(1500);
+        document.getElementById('line-zk').style.stroke = '#e2e8f0';
+
+        // BƯỚC 2: GỬI TỚI BROKER LEADER
+        addLog('BƯỚC 2', 'Producer bắn Message trực tiếp tới Broker 1 (Leader).', 'info');
+        document.getElementById('status-producer').innerText = 'Đã gửi (Awaiting ACK)';
+        
+        pktMain.style.transition = 'none';
+        pktMain.style.top = '300px'; pktMain.style.left = '15%';
+        pktMain.style.opacity = '1';
+        await delay(50);
+        pktMain.style.transition = 'top 1.5s, left 1.5s';
+        pktMain.style.top = '220px'; pktMain.style.left = '50%';
+        await delay(1500);
+
+        // BƯỚC 3: GHI VÀO PARTITION & CẤP OFFSET
+        currentOffset++;
+        highlightNode('b1', '#f97316');
+        document.getElementById('offset-b1').innerText = `Off: ${currentOffset}`;
+        addLog('BƯỚC 3', `Broker 1 nhận tin, ghi xuống ổ cứng. Gắn định danh vĩnh viễn Offset = ${currentOffset}.`, 'success');
+        pktMain.style.opacity = '0';
+        await delay(1500);
+
+        // BƯỚC 4: REPLICATION (ĐỒNG BỘ DỰ PHÒNG)
+        addLog('BƯỚC 4', 'Broker 1 đồng bộ bản sao (Replica) sang Broker 2 để phòng hỏng hóc.', 'info');
+        pktRep.style.transition = 'none';
+        pktRep.style.top = '220px'; pktRep.style.left = '50%';
+        pktRep.style.opacity = '1';
+        await delay(50);
+        pktRep.style.transition = 'top 1.5s, left 1.5s';
+        pktRep.style.top = '400px'; pktRep.style.left = '50%';
+        await delay(1500);
+
+        highlightNode('b2', '#fb923c');
+        document.getElementById('offset-b2').innerText = `Off: ${currentOffset}`;
+        addLog('BƯỚC 4.5', 'Broker 2 đã ghi nhận bản sao an toàn. Trả về tín hiệu ACK cho Producer.', 'success');
+        pktRep.style.opacity = '0';
+        document.getElementById('status-producer').innerText = `Đã nhận ACK (Off:${currentOffset})`;
+        await delay(1500);
+
+        // BƯỚC 5: CONSUMER PULL DỮ LIỆU
+        addLog('BƯỚC 5', 'Consumer 1 (thuộc Group A) liên tục gọi lệnh PULL đến Broker 1 để kéo dữ liệu mới.', 'info');
+        pktMain.className = 'packet packet-pull';
+        pktMain.innerText = 'P';
+        pktMain.style.transition = 'none';
+        pktMain.style.top = '220px'; pktMain.style.left = '50%';
+        pktMain.style.opacity = '1';
+        await delay(50);
+        pktMain.style.transition = 'top 1.5s, left 1.5s';
+        pktMain.style.top = '230px'; pktMain.style.left = '85%';
+        await delay(1500);
+
+        highlightNode('c1', '#10b981');
+        document.getElementById('status-c1').innerHTML = `Đã xử lý xong.<br>Commit Offset: ${currentOffset}`;
+        addLog('BƯỚC 6', `Consumer 1 xử lý xong tin nhắn. Báo cáo lại (Commit Offset = ${currentOffset}) lên Kafka để xác nhận không kéo lại tin này nữa. Hoàn thành!`, 'success');
+        pktMain.style.opacity = '0';
+
+        setTimeout(() => { document.getElementById('btnSend').disabled = false; }, 2000);
+    }
+</script>
+
+</body>
+</html>

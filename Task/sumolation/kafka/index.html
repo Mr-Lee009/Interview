@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Kafka: Hệ thống Ngân hàng (Bản chậm)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0fdf4;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .btn-valid { background: #10b981; }
+        .btn-fraud { background: #ef4444; }
+
+        .network-graph {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .lines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        .node {
+            position: absolute;
+            z-index: 2;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.5s ease-out; /* Làm mượt hiệu ứng active */
+            width: 160px;
+        }
+
+        .node h4 { margin: 0 0 5px 0; font-size: 15px; }
+        .node p { margin: 0; font-size: 12px; color: #64748b; }
+        
+        .node-status {
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 5px;
+            border-radius: 4px;
+            display: none;
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .node.active { transform: translate(-50%, -50%) scale(1.08); }
+
+        #producer { top: 225px; left: 15%; border-color: #3b82f6; }
+        #kafka { top: 225px; left: 50%; border-color: #f97316; background: #fff7ed; width: 180px;}
+        #consumer-ai { top: 75px; left: 85%; border-color: #8b5cf6; }
+        #consumer-sms { top: 225px; left: 85%; border-color: #0ea5e9; }
+        #consumer-db { top: 375px; left: 85%; border-color: #14b8a6; }
+
+        .packet {
+            position: absolute;
+            z-index: 3;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            /* Giảm tốc độ di chuyển của CSS */
+            transition: top 1.5s ease-in-out, left 1.5s ease-in-out, background-color 0.5s;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 10px; color: white; font-weight: bold;
+        }
+        
+        .packet.valid { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .packet.fraud { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+        .system-log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 220px; /* Nới rộng khung log một chút */
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px; /* Tăng cỡ chữ log */
+            line-height: 1.6;
+        }
+        .log-time { color: #94a3b8; margin-right: 10px; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #34d399; }
+        .log-error { color: #f87171; font-weight: bold; }
+        .log-payload { color: #fcd34d; padding-left: 20px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; margin-top: 0;">Kiến trúc Apache Kafka Ngân hàng (Tốc độ chậm)</h2>
+    
+    <div class="controls">
+        <button class="btn-valid" id="btnValid" onclick="runSimulation('valid')">Tạo Giao dịch Hợp lệ</button>
+        <button class="btn-fraud" id="btnFraud" onclick="runSimulation('fraud')">Tạo Giao dịch Bất thường</button>
+    </div>
+
+    <div class="network-graph">
+        <svg class="lines">
+            <line x1="15%" y1="225" x2="50%" y2="225" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="50%" y1="225" x2="85%" y2="75" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="50%" y1="225" x2="85%" y2="225" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="50%" y1="225" x2="85%" y2="375" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+        </svg>
+
+        <div class="node" id="producer">
+            <h4>📱 Máy POS / App</h4><p>Producer</p>
+            <div class="node-status" id="status-producer"></div>
+        </div>
+        
+        <div class="node" id="kafka">
+            <h4>🔴 KAFKA BROKER</h4><p>Topic: card-tx</p>
+            <div class="node-status" id="status-kafka"></div>
+        </div>
+        
+        <div class="node" id="consumer-ai">
+            <h4>🤖 AI Engine</h4><p>Consumer 1: Cảnh báo</p>
+            <div class="node-status" id="status-ai"></div>
+        </div>
+        
+        <div class="node" id="consumer-sms">
+            <h4>✉️ SMS Service</h4><p>Consumer 2: Thông báo</p>
+            <div class="node-status" id="status-sms"></div>
+        </div>
+        
+        <div class="node" id="consumer-db">
+            <h4>🗄️ Ledger DB</h4><p>Consumer 3: Ghi sổ</p>
+            <div class="node-status" id="status-db"></div>
+        </div>
+
+        <div class="packet" id="packet-main">E</div>
+        <div class="packet" id="packet-1">E</div>
+        <div class="packet" id="packet-2">E</div>
+        <div class="packet" id="packet-3">E</div>
+    </div>
+
+    <h3>Terminal Log (Real-time)</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const nodes = {
+        producer: document.getElementById('producer'),
+        kafka: document.getElementById('kafka'),
+        ai: document.getElementById('consumer-ai'),
+        sms: document.getElementById('consumer-sms'),
+        db: document.getElementById('consumer-db')
+    };
+    
+    const statuses = {
+        producer: document.getElementById('status-producer'),
+        kafka: document.getElementById('status-kafka'),
+        ai: document.getElementById('status-ai'),
+        sms: document.getElementById('status-sms'),
+        db: document.getElementById('status-db')
+    };
+
+    const mockData = {
+        valid: { id: "TX-102", amount: "500.000 VNĐ", loc: "Hà Nội", card: "**** 1234" },
+        fraud: { id: "TX-999", amount: "50.000.000 VNĐ", loc: "Paris, Pháp", card: "**** 1234" }
+    };
+
+    function addLog(text, type = 'info') {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('div');
+        let typeClass = type === 'success' ? 'log-success' : (type === 'error' ? 'log-error' : (type === 'payload' ? 'log-payload' : 'log-info'));
+        
+        if (type === 'payload') {
+            p.innerHTML = `<span class="${typeClass}">${text}</span>`;
+        } else {
+            p.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">${text}</span>`;
+        }
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function setStatus(nodeKey, htmlContent) {
+        if(!htmlContent) {
+            statuses[nodeKey].style.display = 'none';
+            return;
+        }
+        statuses[nodeKey].innerHTML = htmlContent;
+        statuses[nodeKey].style.display = 'block';
+    }
+
+    function highlightNode(nodeKey, color) {
+        nodes[nodeKey].style.borderColor = color;
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        
+        // Giữ trạng thái active lâu hơn (1.5 giây) để dễ nhìn
+        setTimeout(() => {
+            nodes[nodeKey].classList.remove('active');
+            setTimeout(() => nodes[nodeKey].style.boxShadow = 'none', 500);
+        }, 1500);
+    }
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    async function runSimulation(type) {
+        // Khóa nút
+        document.getElementById('btnValid').disabled = true;
+        document.getElementById('btnFraud').disabled = true;
+        logContainer.innerHTML = '';
+        Object.keys(statuses).forEach(k => setStatus(k, ''));
+
+        const isFraud = type === 'fraud';
+        const txData = isFraud ? mockData.fraud : mockData.valid;
+        const pClass = isFraud ? 'fraud' : 'valid';
+        const color = isFraud ? '#ef4444' : '#10b981';
+
+        // --- BƯỚC 1: PRODUCER ---
+        addLog(`[BƯỚC 1 - PRODUCER] Máy POS quét thẻ. Bắt đầu xử lý giao dịch...`);
+        addLog(`Payload: { id: "${txData.id}", loc: "${txData.loc}", amt: "${txData.amount}" }`, 'payload');
+        setStatus('producer', `Phát sinh: ${txData.amount}<br>Tại: ${txData.loc}`);
+        highlightNode('producer', color);
+
+        const pktMain = document.getElementById('packet-main');
+        pktMain.className = `packet ${pClass}`;
+        pktMain.style.transition = 'none';
+        pktMain.style.top = '225px'; pktMain.style.left = '15%';
+        pktMain.style.opacity = '1';
+        
+        // Dừng lại 2 giây để người dùng đọc log bước 1
+        await delay(2000); 
+        
+        // Di chuyển đến Kafka (mất 1.5 giây)
+        addLog(`-> Đang gửi Event lên Kafka Topic...`, 'info');
+        pktMain.style.transition = 'top 1.5s, left 1.5s';
+        pktMain.style.top = '225px'; pktMain.style.left = '50%'; 
+        
+        await delay(1500);
+
+        // --- BƯỚC 2: KAFKA BROKER ---
+        addLog(`[BƯỚC 2 - KAFKA] Nhận Event. Đã lưu an toàn vào Topic 'card-tx'.`, 'success');
+        setStatus('kafka', `Offset: 1042<br>Status: Commited`);
+        highlightNode('kafka', '#f97316');
+        pktMain.style.opacity = '0';
+
+        // Dừng 2 giây để người dùng đọc log bước 2
+        await delay(2000);
+
+        // --- BƯỚC 3: CONSUMERS (FAN-OUT PULL) ---
+        addLog(`[BƯỚC 3 - ROUTING] Các Consumers (AI, SMS, DB) đang đọc dữ liệu từ Topic...`);
+        
+        const packets = [
+            { el: document.getElementById('packet-1'), top: '75px' },
+            { el: document.getElementById('packet-2'), top: '225px' },
+            { el: document.getElementById('packet-3'), top: '375px' }
+        ];
+
+        packets.forEach(p => {
+            p.el.className = `packet ${pClass}`;
+            p.el.style.transition = 'none';
+            p.el.style.top = '225px'; p.el.style.left = '50%'; 
+            p.el.style.opacity = '1';
+            
+            void p.el.offsetWidth; 
+            
+            p.el.style.transition = 'top 1.5s, left 1.5s';
+            p.el.style.top = p.top; p.el.style.left = '85%'; 
+        });
+
+        // Đợi dữ liệu bay đến Consumer (1.5 giây) + dừng thêm 0.5s
+        await delay(2000);
+
+        // --- BƯỚC 4: XỬ LÝ ĐỘC LẬP TẠI CÁC CONSUMER ---
+        addLog(`[BƯỚC 4 - CONSUMER XỬ LÝ] Tiến hành xử lý nghiệp vụ độc lập:`);
+        packets.forEach(p => p.el.style.opacity = '0');
+
+        // AI Consumer
+        highlightNode('ai', color);
+        if (isFraud) {
+            setStatus('ai', `⚠️ RULE_MATCH!<br>IP lạ: ${txData.loc}<br>Action: BLOCK`);
+            addLog(`-> [AI ENGINE]: PHÁT HIỆN GIAN LẬN! Vị trí bất thường (${txData.loc}). Kích hoạt lệnh KHÓA THẺ.`, 'error');
+        } else {
+            setStatus('ai', `✅ SAFE<br>Score: 0.02<br>Action: ALLOW`);
+            addLog(`-> [AI ENGINE]: Giao dịch an toàn.`, 'success');
+        }
+
+        // Đợi 1 chút giữa các log cho dễ nhìn
+        await delay(800);
+
+        // SMS Consumer
+        highlightNode('sms', '#0ea5e9');
+        if (isFraud) {
+            setStatus('sms', `Gửi OTP khẩn cấp<br>Cảnh báo khóa thẻ`);
+            addLog(`-> [SMS SERVICE]: Gửi tin nhắn cảnh báo khóa thẻ.`);
+        } else {
+            setStatus('sms', `Gửi SMS trừ tiền:<br>-${txData.amount}`);
+            addLog(`-> [SMS SERVICE]: Gửi tin nhắn biến động số dư.`);
+        }
+        
+        await delay(800);
+
+        // Ledger DB Consumer
+        highlightNode('db', '#14b8a6');
+        if (isFraud) {
+            setStatus('db', `TxID: ${txData.id}<br>Status: REJECTED`);
+            addLog(`-> [LEDGER DB]: Đã hủy hạch toán. Giao dịch bị khóa.`, 'error');
+        } else {
+            setStatus('db', `TxID: ${txData.id}<br>Status: SETTLED`);
+            addLog(`-> [LEDGER DB]: Cập nhật số dư thành công.`, 'success');
+        }
+
+        // Chờ 2 giây sau đó mới mở lại nút cho lần chạy tiếp theo
+        setTimeout(() => {
+            document.getElementById('btnValid').disabled = false;
+            document.getElementById('btnFraud').disabled = false;
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>

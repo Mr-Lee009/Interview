@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Redis Pub/Sub</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Vùng vẽ đồ thị mạng lưới */
+        .network-graph {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* SVG để vẽ các đường nối */
+        .lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Các Node (Máy chủ, User) */
+        .node {
+            position: absolute;
+            z-index: 2;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: bold;
+            text-align: center;
+            transform: translate(-50%, -50%); /* Canh giữa theo tọa độ */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .node.active {
+            border-color: #3b82f6;
+            background: #e0f2fe;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        #userA { top: 60px; left: 15%; border-color: #10b981; }
+        #server1 { top: 60px; left: 50%; border-color: #64748b; }
+        #redis { top: 175px; left: 85%; border-color: #ef4444; color: #ef4444; }
+        #server2 { top: 290px; left: 50%; border-color: #64748b; }
+        #userB { top: 290px; left: 15%; border-color: #10b981; }
+
+        /* Gói tin (Data Packet) */
+        .packet {
+            position: absolute;
+            z-index: 3;
+            width: 16px;
+            height: 16px;
+            background: #f59e0b;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: top 0.6s ease-in-out, left 0.6s ease-in-out;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+
+        /* Bảng điều khiển */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #2563eb; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Log hệ thống */
+        .system-log {
+            background: #1e293b;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .system-log p { margin: 5px 0; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        .log-time { color: #94a3b8; font-size: 12px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Mô phỏng: Real-time Chat với Redis Pub/Sub</h2>
+    
+    <div class="controls">
+        <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." value="Xin chào User B!">
+        <button id="sendBtn" onclick="sendMessage()">Gửi tin nhắn</button>
+    </div>
+
+    <div class="network-graph">
+        <svg class="lines">
+            <line x1="15%" y1="60" x2="50%" y2="60" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="5,5" />
+            <line x1="50%" y1="60" x2="85%" y2="175" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="5,5" />
+            <line x1="85%" y1="175" x2="50%" y2="290" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="5,5" />
+            <line x1="50%" y1="290" x2="15%" y2="290" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="5,5" />
+        </svg>
+
+        <div class="node" id="userA">📱 User A<br><small>App Chat</small></div>
+        <div class="node" id="server1">🖥️ Server 1<br><small>WebSocket</small></div>
+        <div class="node" id="redis">🔴 REDIS<br><small>Pub/Sub</small></div>
+        <div class="node" id="server2">🖥️ Server 2<br><small>WebSocket</small></div>
+        <div class="node" id="userB">📱 User B<br><small>App Chat</small></div>
+
+        <div class="packet" id="packet"></div>
+    </div>
+
+    <h3>System Log</h3>
+    <div class="system-log" id="logContainer">
+        </div>
+</div>
+
+<script>
+    const packet = document.getElementById('packet');
+    const sendBtn = document.getElementById('sendBtn');
+    const logContainer = document.getElementById('logContainer');
+    const msgInput = document.getElementById('messageInput');
+
+    // Tọa độ các bước di chuyển (trùng với CSS top/left của node)
+    const waypoints = [
+        { node: 'userA', top: '60px', left: '15%', log: 'User A gửi tin nhắn qua WebSocket.' },
+        { node: 'server1', top: '60px', left: '50%', log: 'Server 1 nhận tin. Xác định User B không thuộc Server 1.' },
+        { node: 'redis', top: '175px', left: '85%', log: 'Server 1 PUBLISH tin nhắn vào channel "user_B_channel" trên Redis.' },
+        { node: 'server2', top: '290px', left: '50%', log: 'Server 2 đang SUBSCRIBE channel. Chộp được tin nhắn!' },
+        { node: 'userB', top: '290px', left: '15%', log: 'Server 2 đẩy tin nhắn qua WebSocket xuống cho User B.' }
+    ];
+
+    function addLog(text) {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('p');
+        p.innerHTML = `<span class="log-time">[${time}]</span> ${text}`;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function highlightNode(nodeId, isActive) {
+        const el = document.getElementById(nodeId);
+        if (isActive) el.classList.add('active');
+        else el.classList.remove('active');
+    }
+
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function sendMessage() {
+        const msg = msgInput.value.trim();
+        if(!msg) return;
+
+        // Reset trạng thái
+        sendBtn.disabled = true;
+        logContainer.innerHTML = ''; 
+        addLog(`Bắt đầu luồng gửi tin: "${msg}"`);
+        
+        // Hiện gói tin tại User A
+        packet.style.transition = 'none';
+        packet.style.top = waypoints[0].top;
+        packet.style.left = waypoints[0].left;
+        packet.style.opacity = '1';
+        
+        // Đợi 1 chút để DOM cập nhật trước khi bật transition
+        await delay(50);
+        packet.style.transition = 'top 0.8s ease-in-out, left 0.8s ease-in-out';
+
+        // Di chuyển qua từng trạm
+        for (let i = 0; i < waypoints.length; i++) {
+            const point = waypoints[i];
+            
+            // Di chuyển gói tin
+            packet.style.top = point.top;
+            packet.style.left = point.left;
+            
+            // Sáng node hiện tại
+            highlightNode(point.node, true);
+            
+            // Nếu không phải điểm đầu, tắt node trước đó
+            if (i > 0) {
+                highlightNode(waypoints[i-1].node, false);
+            }
+            
+            // Ghi log
+            addLog(`Trạm ${i+1}: ${point.log}`);
+            
+            // Chờ animation hoàn thành (800ms) + nghỉ 200ms
+            await delay(1000);
+        }
+
+        // Tắt sáng node cuối cùng và ẩn gói tin
+        highlightNode(waypoints[waypoints.length-1].node, false);
+        packet.style.opacity = '0';
+        addLog(`✅ Đã giao tin nhắn thành công cho User B!`);
+        
+        sendBtn.disabled = false;
+    }
+</script>
+
+</body>
+</html>
