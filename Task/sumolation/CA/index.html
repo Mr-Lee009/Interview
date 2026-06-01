@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Hệ thống Chữ ký số (CA/PKI)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 { text-align: center; color: #0f172a; margin-top: 0; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover:not(:disabled) { background: #2563eb; }
+        button:active:not(:disabled) { transform: scale(0.95); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Đồ thị mạng lưới */
+        .network-graph {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* SVG vẽ đường nối */
+        .lines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* Các Node */
+        .node {
+            position: absolute;
+            z-index: 2;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            width: 180px;
+        }
+        
+        .node h4 { margin: 0 0 5px 0; font-size: 15px; }
+        .node p { margin: 0; font-size: 12px; color: #64748b; }
+
+        .node-details {
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: monospace;
+            background: #f8fafc;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+            min-height: 40px;
+        }
+
+        .node.active { transform: translate(-50%, -50%) scale(1.05); }
+
+        /* Tọa độ Node */
+        #node-ca { top: 80px; left: 50%; border-color: #eab308; }
+        #node-sender { top: 300px; left: 20%; border-color: #3b82f6; }
+        #node-receiver { top: 300px; left: 80%; border-color: #10b981; }
+
+        /* Gói tin di chuyển */
+        .packet {
+            position: absolute;
+            z-index: 3;
+            padding: 5px 10px;
+            background: #f59e0b;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 12px;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: top 1.5s ease-in-out, left 1.5s ease-in-out, opacity 0.3s;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            white-space: nowrap;
+        }
+
+        /* Bảng Log */
+        .system-log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+        .log-time { color: #64748b; margin-right: 8px; }
+        .log-step { color: #fcd34d; font-weight: bold; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #34d399; }
+        .log-warn { color: #fbbf24; }
+        .log-sub { padding-left: 20px; color: #cbd5e1; display: block; font-size: 12.5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Mô phỏng: Luồng hoạt động Hệ thống Chữ ký số</h2>
+    
+    <div class="controls">
+        <button id="btn-step1" onclick="runStep1()">1. Tạo Khóa & Cấp Chứng thư</button>
+        <button id="btn-step2" onclick="runStep2()" disabled>2. Ký Dữ Liệu</button>
+        <button id="btn-step3" onclick="runStep3()" disabled>3. Gửi Tài Liệu</button>
+        <button id="btn-step4" onclick="runStep4()" disabled>4. Xác Minh (Verify)</button>
+        <button id="btn-reset" onclick="resetSim()" style="background:#ef4444;">Làm Lại</button>
+    </div>
+
+    <div class="network-graph">
+        <!-- Đường nối (SVG) -->
+        <svg class="lines">
+            <!-- Nối Sender với CA -->
+            <line x1="20%" y1="300" x2="50%" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+            <!-- Nối Sender với Receiver -->
+            <line x1="20%" y1="300" x2="80%" y2="300" stroke="#cbd5e1" stroke-width="2" />
+            <!-- Nối Receiver với CA -->
+            <line x1="80%" y1="300" x2="50%" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+        </svg>
+
+        <!-- Các Node -->
+        <div class="node" id="node-ca">
+            <h4>🏢 Trung tâm CA/RA</h4>
+            <p>Certificate Authority</p>
+            <div class="node-details" id="detail-ca">Trạng thái: Sẵn sàng<br>Dịch vụ: Cấp phát, CRL, OCSP</div>
+        </div>
+
+        <div class="node" id="node-sender">
+            <h4>👤 Người Ký (Sender)</h4>
+            <p>USB Token / HSM</p>
+            <div class="node-details" id="detail-sender">- Chưa có khóa<br>- Tài liệu gốc: HoaDon.pdf</div>
+        </div>
+
+        <div class="node" id="node-receiver">
+            <h4>🏢 Bên Nhận (Receiver)</h4>
+            <p>Hệ thống xác minh</p>
+            <div class="node-details" id="detail-receiver">- Đang chờ dữ liệu...</div>
+        </div>
+
+        <!-- Packet di chuyển -->
+        <div class="packet" id="packet">Payload</div>
+    </div>
+
+    <h3>Nhật ký hệ thống (Audit Log)</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const nodes = {
+        ca: document.getElementById('node-ca'),
+        sender: document.getElementById('node-sender'),
+        receiver: document.getElementById('node-receiver')
+    };
+    const details = {
+        ca: document.getElementById('detail-ca'),
+        sender: document.getElementById('detail-sender'),
+        receiver: document.getElementById('detail-receiver')
+    };
+    const packet = document.getElementById('packet');
+
+    // Hàm tiện ích
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    function addLog(step, text, type = 'info', subItems = []) {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('div');
+        let typeClass = type === 'success' ? 'log-success' : (type === 'warn' ? 'log-warn' : 'log-info');
+        
+        let html = `<span class="log-time">[${time}]</span> <span class="log-step">[${step}]</span> <span class="${typeClass}">${text}</span>`;
+        if (subItems.length > 0) {
+            subItems.forEach(item => {
+                html += `<span class="log-sub">↳ ${item}</span>`;
+            });
+        }
+        p.innerHTML = html;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function highlightNode(nodeKey, color) {
+        nodes[nodeKey].style.borderColor = color;
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        setTimeout(() => {
+            nodes[nodeKey].classList.remove('active');
+            setTimeout(() => nodes[nodeKey].style.boxShadow = 'none', 500);
+        }, 1500);
+    }
+
+    function movePacket(startTop, startLeft, endTop, endLeft, text, color = '#f59e0b') {
+        return new Promise(async (resolve) => {
+            packet.innerText = text;
+            packet.style.background = color;
+            packet.style.boxShadow = `0 0 10px ${color}`;
+            packet.style.transition = 'none';
+            packet.style.top = startTop; 
+            packet.style.left = startLeft;
+            packet.style.opacity = '1';
+            
+            await delay(50); // Ép reflow
+            
+            packet.style.transition = 'top 1.5s ease-in-out, left 1.5s ease-in-out';
+            packet.style.top = endTop; 
+            packet.style.left = endLeft;
+            
+            await delay(1500);
+            packet.style.opacity = '0';
+            resolve();
+        });
+    }
+
+    // --- BƯỚC 1: TẠO KHÓA & CẤP CHỨNG THƯ ---
+    async function runStep1() {
+        document.getElementById('btn-step1').disabled = true;
+        
+        addLog('BƯỚC 1', 'Người dùng tạo cặp khóa (Key Pair).', 'info', [
+            'Tạo Private Key (lưu an toàn trong USB Token).',
+            'Tạo Public Key để gửi đi.'
+        ]);
+        highlightNode('sender', '#3b82f6');
+        details.sender.innerHTML = '🔑 Private Key (Bảo mật)<br>🔓 Public Key<br>📄 HoaDon.pdf';
+        
+        await delay(1500);
+        
+        addLog('BƯỚC 2', 'Gửi Public Key và Định danh lên RA/CA xin cấp chứng thư.', 'warn');
+        await movePacket('300px', '20%', '80px', '50%', 'Đăng ký (Pub Key + ID)', '#3b82f6');
+        
+        highlightNode('ca', '#eab308');
+        addLog('BƯỚC 2', 'CA xác minh danh tính và phát hành Chứng thư số.', 'success', [
+            'Đóng gói Public Key + Danh tính vào chuẩn X.509.',
+            'CA dùng khóa bí mật của CA để ký lên Chứng thư.'
+        ]);
+        
+        await delay(1000);
+        await movePacket('80px', '50%', '300px', '20%', 'Chứng thư số X.509', '#10b981');
+        
+        details.sender.innerHTML = '🔑 Private Key<br>📜 Chứng thư số (X.509)<br>📄 HoaDon.pdf';
+        addLog('HOÀN TẤT', 'Người ký đã sở hữu Chứng thư số hợp lệ. Sẵn sàng ký dữ liệu.', 'success');
+        
+        document.getElementById('btn-step2').disabled = false;
+    }
+
+    // --- BƯỚC 3: KÝ DỮ LIỆU ---
+    async function runStep2() {
+        document.getElementById('btn-step2').disabled = true;
+        
+        highlightNode('sender', '#3b82f6');
+        addLog('BƯỚC 3', 'Bắt đầu quy trình ký số trên tài liệu (HoaDon.pdf).', 'info', [
+            'Hệ thống băm (Hash) nội dung tài liệu bằng thuật toán SHA-256.',
+            'KHÔNG ký trực tiếp lên file lớn để tối ưu hiệu năng.'
+        ]);
+        
+        await delay(2000);
+        
+        addLog('BƯỚC 3', 'Tạo Chữ ký số (Digital Signature).', 'warn', [
+            'USB Token dùng [Private Key] để mã hóa/ký lên giá trị Hash.',
+            'Thuật toán ký: RSA hoặc ECDSA.'
+        ]);
+        
+        details.sender.innerHTML = '🔑 Private Key<br>📜 Chứng thư số<br>📄 Tài liệu gốc<br>✍️ Chữ ký số (Signature)';
+        await delay(1500);
+        
+        addLog('HOÀN TẤT', 'Đã tạo Chữ ký số thành công.', 'success');
+        document.getElementById('btn-step3').disabled = false;
+    }
+
+    // --- BƯỚC 4: GỬI TÀI LIỆU ---
+    async function runStep3() {
+        document.getElementById('btn-step3').disabled = true;
+        
+        addLog('BƯỚC 4', 'Đóng gói và gửi dữ liệu sang cho Bên nhận.', 'info', [
+            'Gói tin gồm: Tài liệu gốc + Chữ ký số + Chứng thư số của người ký.'
+        ]);
+        
+        await movePacket('300px', '20%', '300px', '80%', 'Tài liệu + Chữ Ký + Chứng Thư', '#8b5cf6');
+        
+        highlightNode('receiver', '#10b981');
+        details.receiver.innerHTML = '📥 Đã nhận:<br>- Tài liệu gốc<br>- Chữ ký số<br>- Chứng thư số';
+        
+        addLog('BƯỚC 4', 'Bên nhận đã nhận đầy đủ dữ liệu. Cần xác minh tính hợp lệ.', 'success');
+        document.getElementById('btn-step4').disabled = false;
+    }
+
+    // --- BƯỚC 5: XÁC MINH (VERIFY) ---
+    async function runStep4() {
+        document.getElementById('btn-step4').disabled = true;
+        
+        highlightNode('receiver', '#10b981');
+        addLog('BƯỚC 5', 'Bên nhận tiến hành Xác minh toàn vẹn (Integrity).', 'info', [
+            '1. Tự băm (Hash) lại tài liệu gốc nhận được bằng SHA-256.',
+            '2. Lấy [Public Key] từ Chứng thư số để giải mã Chữ ký số.',
+            '3. So sánh 2 giá trị Hash: Trùng khớp -> Dữ liệu không bị sửa đổi.'
+        ]);
+        
+        await delay(3000);
+        
+        addLog('BƯỚC 5', 'Kiểm tra trạng thái Chứng thư số (Authenticity & PKI).', 'warn', [
+            'Gửi request (OCSP) hoặc tải CRL từ CA để kiểm tra thu hồi.'
+        ]);
+        
+        // Mô phỏng Receiver hỏi CA
+        await movePacket('300px', '80%', '80px', '50%', 'Check OCSP/CRL', '#64748b');
+        highlightNode('ca', '#eab308');
+        await delay(500);
+        await movePacket('80px', '50%', '300px', '80%', 'Trạng thái: Hợp lệ', '#10b981');
+        
+        highlightNode('receiver', '#10b981');
+        details.receiver.innerHTML = '✅ XÁC MINH THÀNH CÔNG<br>- Toàn vẹn: Đúng (Hash match)<br>- Người ký: Đã xác thực<br>- Chứng thư: Còn hiệu lực (PKI)';
+        
+        addLog('HOÀN TẤT', 'Chữ ký hợp lệ. Đảm bảo tính chống chối bỏ (Non-repudiation).', 'success');
+    }
+
+    function resetSim() {
+        // Reset buttons
+        document.getElementById('btn-step1').disabled = false;
+        document.getElementById('btn-step2').disabled = true;
+        document.getElementById('btn-step3').disabled = true;
+        document.getElementById('btn-step4').disabled = true;
+        
+        // Reset logs & UI
+        logContainer.innerHTML = '';
+        details.sender.innerHTML = '- Chưa có khóa<br>- Tài liệu gốc: HoaDon.pdf';
+        details.receiver.innerHTML = '- Đang chờ dữ liệu...';
+        addLog('HỆ THỐNG', 'Đã khởi tạo lại mô phỏng.', 'warn');
+    }
+</script>
+
+</body>
+</html>
