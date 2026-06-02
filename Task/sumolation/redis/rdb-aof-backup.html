@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Redis RDB và AOF</title>
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --panel: #ffffff;
+            --text: #172033;
+            --muted: #667085;
+            --border: #d9e1ef;
+            --grid: #edf1f7;
+            --redis: #dc2626;
+            --rdb: #2563eb;
+            --aof: #16a34a;
+            --rewrite: #d97706;
+            --dark: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            width: min(1440px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 14px 0;
+        }
+
+        .topbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: end;
+            margin-bottom: 12px;
+        }
+
+        h1, h2, h3, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: clamp(24px, 3.2vw, 38px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            max-width: 760px;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            min-height: 36px;
+            padding: 0 13px;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: opacity 0.16s ease, transform 0.16s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
+        }
+
+        .btn-rdb { background: var(--rdb); }
+        .btn-aof { background: var(--aof); }
+        .btn-both { background: var(--redis); }
+        .btn-reset { background: #475467; }
+
+        .speed-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 36px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #ffffff;
+            color: #475467;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .speed-control select {
+            border: 0;
+            outline: none;
+            min-height: 28px;
+            color: var(--text);
+            background: transparent;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(620px, 1.38fr) minmax(340px, 0.82fr);
+            gap: 12px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
+        }
+
+        .stage {
+            padding: 12px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-bottom: 9px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: #52637a;
+            background: #f8fafc;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.redis { background: var(--redis); }
+        .dot.rdb { background: var(--rdb); }
+        .dot.aof { background: var(--aof); }
+        .dot.rewrite { background: var(--rewrite); }
+
+        .diagram-wrap {
+            border: 1px dashed #c8d3e4;
+            border-radius: 8px;
+            background-color: #fbfcff;
+            background-image:
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 28px 28px;
+            overflow: hidden;
+        }
+
+        .diagram {
+            display: block;
+            width: 100%;
+            aspect-ratio: 900 / 560;
+            min-height: 0;
+            max-height: calc(100vh - 142px);
+        }
+
+        .flow-line {
+            stroke: #cfd8e7;
+            stroke-width: 4;
+            fill: none;
+            stroke-linecap: round;
+            marker-end: url(#arrowNeutral);
+            transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+        }
+
+        .flow-line.active {
+            stroke-width: 6;
+            filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.35));
+        }
+
+        .flow-line.rdb.active {
+            stroke: var(--rdb);
+            marker-end: url(#arrowRdb);
+        }
+
+        .flow-line.aof.active {
+            stroke: var(--aof);
+            marker-end: url(#arrowAof);
+        }
+
+        .flow-line.redis.active {
+            stroke: var(--redis);
+            marker-end: url(#arrowRedis);
+        }
+
+        .flow-line.rewrite.active {
+            stroke: var(--rewrite);
+            marker-end: url(#arrowRewrite);
+        }
+
+        .node-card rect {
+            fill: #ffffff;
+            stroke: #cfd8e7;
+            stroke-width: 2;
+            rx: 8;
+            filter: drop-shadow(0 8px 12px rgba(16, 24, 40, 0.08));
+            transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
+        }
+
+        .node-card text {
+            text-anchor: middle;
+            letter-spacing: 0;
+        }
+
+        .node-title {
+            fill: #111827;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .node-sub {
+            fill: #596579;
+            font-size: 14px;
+        }
+
+        .node-card.redis rect { stroke: rgba(220, 38, 38, 0.55); }
+        .node-card.rdb rect { stroke: rgba(37, 99, 235, 0.55); }
+        .node-card.aof rect { stroke: rgba(22, 163, 74, 0.55); }
+        .node-card.rewrite rect { stroke: rgba(217, 119, 6, 0.65); }
+
+        .node-card.active rect {
+            stroke-width: 4;
+            filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.28));
+        }
+
+        .node-card.redis.active rect { stroke: var(--redis); }
+        .node-card.rdb.active rect { stroke: var(--rdb); }
+        .node-card.aof.active rect { stroke: var(--aof); }
+        .node-card.rewrite.active rect { stroke: var(--rewrite); }
+
+        #packet {
+            opacity: 0;
+            transition: cx 0.7s ease, cy 0.7s ease, opacity 0.2s ease, fill 0.2s ease;
+            filter: drop-shadow(0 0 7px rgba(220, 38, 38, 0.75));
+        }
+
+        .side {
+            display: grid;
+            grid-template-rows: minmax(0, 1.05fr) auto minmax(120px, 0.62fr);
+            gap: 10px;
+            max-height: calc(100vh - 122px);
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .card h2 {
+            font-size: 17px;
+            line-height: 1.2;
+            margin-bottom: 9px;
+        }
+
+        .step-list {
+            display: grid;
+            gap: 7px;
+            flex: 1;
+            max-height: 100%;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .step {
+            border: 1px solid #dfe7f3;
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            color: #52637a;
+            line-height: 1.32;
+            font-size: 13px;
+            transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+        }
+
+        .step strong {
+            display: block;
+            color: #1f2a44;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .step.active {
+            border-color: #60a5fa;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .step.done {
+            border-color: #86efac;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .compare-box {
+            border: 1px solid #dfe7f3;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 9px;
+        }
+
+        .compare-box h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .compare-box ul {
+            margin: 0;
+            padding-left: 16px;
+            color: var(--muted);
+            line-height: 1.33;
+            font-size: 12px;
+        }
+
+        .log {
+            height: 100%;
+            flex: 1;
+            min-height: 120px;
+            overflow: auto;
+            border-radius: 8px;
+            background: var(--dark);
+            color: #d1fae5;
+            padding: 10px;
+            font: 12px/1.35 Consolas, "Courier New", monospace;
+        }
+
+        .log p {
+            margin: 0 0 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .time { color: #93c5fd; }
+        .mode { color: #fcd34d; font-weight: 700; }
+
+        @media (max-width: 1120px) {
+            .topbar {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                justify-content: flex-start;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .diagram {
+                min-height: 320px;
+                max-height: none;
+            }
+
+            .side {
+                max-height: none;
+            }
+        }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                width: min(100% - 24px, 1440px);
+                padding-top: 12px;
+            }
+
+            .subtitle {
+                font-size: 13px;
+            }
+
+            button {
+                flex: 1 1 calc(50% - 8px);
+                padding: 0 10px;
+            }
+
+            .stage,
+            .card {
+                padding: 10px;
+            }
+
+            .diagram {
+                min-height: 270px;
+            }
+
+            .compare {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <div>
+                <h1>Redis Persistence: RDB và AOF</h1>
+                <p class="subtitle">
+                    Mô phỏng quá trình Redis lưu dữ liệu xuống disk: RDB tạo snapshot theo thời điểm,
+                    AOF ghi lại command để replay khi khôi phục.
+                </p>
+            </div>
+            <div class="actions">
+                <label class="speed-control">
+                    Tốc độ
+                    <select id="speedSelect">
+                        <option value="1.6">Chậm</option>
+                        <option value="1">Vừa</option>
+                        <option value="0.65">Nhanh</option>
+                    </select>
+                </label>
+                <button class="btn-rdb" id="rdbBtn">Chạy RDB</button>
+                <button class="btn-aof" id="aofBtn">Chạy AOF</button>
+                <button class="btn-both" id="bothBtn">Chạy cả hai</button>
+                <button class="btn-reset" id="resetBtn">Reset</button>
+            </div>
+        </header>
+
+        <section class="layout">
+            <section class="panel stage">
+                <div class="legend">
+                    <span class="chip"><span class="dot redis"></span>Redis memory</span>
+                    <span class="chip"><span class="dot rdb"></span>RDB snapshot</span>
+                    <span class="chip"><span class="dot aof"></span>AOF command log</span>
+                    <span class="chip"><span class="dot rewrite"></span>AOF rewrite</span>
+                </div>
+
+                <div class="diagram-wrap">
+                    <svg class="diagram" viewBox="0 0 900 560" role="img" aria-label="Redis RDB AOF persistence diagram">
+                        <defs>
+                            <marker id="arrowNeutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#cfd8e7"></path>
+                            </marker>
+                            <marker id="arrowRedis" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"></path>
+                            </marker>
+                            <marker id="arrowRdb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"></path>
+                            </marker>
+                            <marker id="arrowAof" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"></path>
+                            </marker>
+                            <marker id="arrowRewrite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"></path>
+                            </marker>
+                        </defs>
+
+                        <path class="flow-line redis" id="arrow-client-redis" d="M 170 130 L 170 220"></path>
+                        <path class="flow-line rdb" id="arrow-redis-fork" d="M 255 260 C 330 230, 350 205, 405 170"></path>
+                        <path class="flow-line rdb" id="arrow-fork-rdb" d="M 580 145 L 660 145"></path>
+                        <path class="flow-line aof" id="arrow-redis-aof" d="M 255 310 C 330 345, 350 370, 405 400"></path>
+                        <path class="flow-line aof" id="arrow-aof-file" d="M 580 405 L 660 405"></path>
+                        <path class="flow-line rewrite" id="arrow-aof-rewrite" d="M 745 455 L 745 485"></path>
+
+                        <g class="node-card" id="client">
+                            <rect x="70" y="50" width="200" height="90"></rect>
+                            <text class="node-title" x="170" y="88">Client writes</text>
+                            <text class="node-sub" x="170" y="116">SET, HSET, INCR, DEL...</text>
+                        </g>
+
+                        <g class="node-card redis" id="redis">
+                            <rect x="70" y="230" width="200" height="100"></rect>
+                            <text class="node-title" x="170" y="272">Redis memory</text>
+                            <text class="node-sub" x="170" y="300">Dữ liệu đang ở RAM</text>
+                        </g>
+
+                        <g class="node-card rdb" id="fork">
+                            <rect x="405" y="100" width="180" height="90"></rect>
+                            <text class="node-title" x="495" y="138">Child process</text>
+                            <text class="node-sub" x="495" y="166">Fork để tạo RDB</text>
+                        </g>
+
+                        <g class="node-card rdb" id="rdbFile">
+                            <rect x="660" y="100" width="190" height="90"></rect>
+                            <text class="node-title" x="755" y="138">dump.rdb</text>
+                            <text class="node-sub" x="755" y="166">Snapshot nhị phân</text>
+                        </g>
+
+                        <g class="node-card aof" id="aofBuffer">
+                            <rect x="405" y="360" width="180" height="90"></rect>
+                            <text class="node-title" x="495" y="398">AOF buffer</text>
+                            <text class="node-sub" x="495" y="426">Gom command</text>
+                        </g>
+
+                        <g class="node-card aof" id="aofFile">
+                            <rect x="660" y="360" width="190" height="90"></rect>
+                            <text class="node-title" x="755" y="398">appendonly.aof</text>
+                            <text class="node-sub" x="755" y="426">Log để replay</text>
+                        </g>
+
+                        <g class="node-card rewrite" id="rewrite">
+                            <rect x="660" y="485" width="190" height="62"></rect>
+                            <text class="node-title" x="755" y="512">AOF rewrite</text>
+                            <text class="node-sub" x="755" y="535">Nén log cũ</text>
+                        </g>
+
+                        <circle id="packet" cx="170" cy="95" r="11" fill="#dc2626"></circle>
+                    </svg>
+                </div>
+            </section>
+
+            <aside class="side">
+                <section class="panel card">
+                    <h2>Các bước đang mô phỏng</h2>
+                    <div class="step-list" id="stepList"></div>
+                </section>
+
+                <section class="panel card">
+                    <h2>So sánh nhanh</h2>
+                    <div class="compare">
+                        <div class="compare-box">
+                            <h3>RDB</h3>
+                            <ul>
+                                <li>Lưu snapshot tại một thời điểm.</li>
+                                <li>File nhỏ, restore nhanh.</li>
+                                <li>Có thể mất dữ liệu sau snapshot cuối.</li>
+                            </ul>
+                        </div>
+                        <div class="compare-box">
+                            <h3>AOF</h3>
+                            <ul>
+                                <li>Ghi lại command thay đổi dữ liệu.</li>
+                                <li>Mất ít dữ liệu hơn tùy fsync.</li>
+                                <li>File lớn hơn, cần rewrite định kỳ.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel card">
+                    <h2>System log</h2>
+                    <div class="log" id="log"></div>
+                </section>
+            </aside>
+        </section>
+    </main>
+
+    <script>
+        const packet = document.getElementById("packet");
+        const log = document.getElementById("log");
+        const stepList = document.getElementById("stepList");
+        const speedSelect = document.getElementById("speedSelect");
+        const buttons = [
+            document.getElementById("rdbBtn"),
+            document.getElementById("aofBtn"),
+            document.getElementById("bothBtn")
+        ];
+
+        const positions = {
+            client: { x: 170, y: 95 },
+            redis: { x: 170, y: 280 },
+            fork: { x: 495, y: 145 },
+            rdbFile: { x: 755, y: 145 },
+            aofBuffer: { x: 495, y: 405 },
+            aofFile: { x: 755, y: 405 },
+            rewrite: { x: 755, y: 516 }
+        };
+
+        const rdbSteps = [
+            {
+                title: "1. Client ghi dữ liệu",
+                text: "Redis nhận lệnh ghi và cập nhật dữ liệu trong RAM.",
+                node: "client",
+                arrow: "arrow-client-redis",
+                from: "client",
+                to: "redis",
+                color: "#dc2626",
+                log: "Client gửi SET user:1 name=An, INCR order_count. Redis cập nhật memory."
+            },
+            {
+                title: "2. Trigger BGSAVE",
+                text: "Redis bắt đầu tạo snapshot RDB theo lịch hoặc do lệnh BGSAVE.",
+                node: "redis",
+                arrow: "arrow-redis-fork",
+                from: "redis",
+                to: "fork",
+                color: "#2563eb",
+                log: "Redis nhận trigger BGSAVE. Process cha vẫn tiếp tục phục vụ request."
+            },
+            {
+                title: "3. Fork child process",
+                text: "Child process nhìn thấy bản sao dữ liệu tại thời điểm fork.",
+                node: "fork",
+                arrow: "arrow-redis-fork",
+                from: "redis",
+                to: "fork",
+                color: "#2563eb",
+                log: "Redis fork child process. Copy-on-write giúp tránh copy toàn bộ RAM ngay lập tức."
+            },
+            {
+                title: "4. Ghi file tạm",
+                text: "Child process serialize snapshot ra file RDB tạm trên disk.",
+                node: "rdbFile",
+                arrow: "arrow-fork-rdb",
+                from: "fork",
+                to: "rdbFile",
+                color: "#2563eb",
+                log: "Child process ghi dữ liệu ra file tạm, ví dụ temp-123.rdb."
+            },
+            {
+                title: "5. Replace dump.rdb",
+                text: "Ghi xong thì file tạm được rename thành dump.rdb mới.",
+                node: "rdbFile",
+                arrow: "arrow-fork-rdb",
+                from: "fork",
+                to: "rdbFile",
+                color: "#2563eb",
+                log: "File tạm được rename atomically thành dump.rdb. Snapshot hoàn tất."
+            },
+            {
+                title: "6. Restore bằng RDB",
+                text: "Khi Redis restart, dữ liệu được load lại từ dump.rdb.",
+                node: "redis",
+                arrow: "arrow-fork-rdb",
+                from: "rdbFile",
+                to: "redis",
+                color: "#2563eb",
+                log: "Redis restart: đọc dump.rdb để restore dữ liệu tại thời điểm snapshot."
+            }
+        ];
+
+        const aofSteps = [
+            {
+                title: "1. Client ghi dữ liệu",
+                text: "Mỗi lệnh ghi làm thay đổi dữ liệu trong Redis memory.",
+                node: "client",
+                arrow: "arrow-client-redis",
+                from: "client",
+                to: "redis",
+                color: "#dc2626",
+                log: "Client gửi SET cart:7 total=120 và HSET user:1 city=HCM."
+            },
+            {
+                title: "2. Append vào AOF buffer",
+                text: "Redis đưa command vào buffer theo định dạng protocol.",
+                node: "aofBuffer",
+                arrow: "arrow-redis-aof",
+                from: "redis",
+                to: "aofBuffer",
+                color: "#16a34a",
+                log: "Command được append vào AOF buffer sau khi Redis cập nhật memory."
+            },
+            {
+                title: "3. fsync xuống disk",
+                text: "Buffer được flush xuống disk tùy cấu hình always, everysec hoặc no.",
+                node: "aofFile",
+                arrow: "arrow-aof-file",
+                from: "aofBuffer",
+                to: "aofFile",
+                color: "#16a34a",
+                log: "Với appendfsync everysec, Redis thường flush AOF xuống disk mỗi giây."
+            },
+            {
+                title: "4. File AOF tăng dần",
+                text: "appendonly.aof chứa lịch sử command để replay.",
+                node: "aofFile",
+                arrow: "arrow-aof-file",
+                from: "aofBuffer",
+                to: "aofFile",
+                color: "#16a34a",
+                log: "appendonly.aof dài dần vì mọi command ghi được lưu lại."
+            },
+            {
+                title: "5. AOF rewrite",
+                text: "Redis tạo AOF mới với command tối thiểu để tái tạo state hiện tại.",
+                node: "rewrite",
+                arrow: "arrow-aof-rewrite",
+                from: "aofFile",
+                to: "rewrite",
+                color: "#d97706",
+                log: "BGREWRITEAOF nén log: nhiều INCR có thể thành một SET giá trị cuối."
+            },
+            {
+                title: "6. Restore bằng replay",
+                text: "Khi restart, Redis replay command trong AOF để dựng lại dữ liệu.",
+                node: "redis",
+                arrow: "arrow-aof-file",
+                from: "aofFile",
+                to: "redis",
+                color: "#16a34a",
+                log: "Redis restart: đọc appendonly.aof và replay command theo đúng thứ tự."
+            }
+        ];
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function speedFactor() {
+            return Number(speedSelect.value) || 1;
+        }
+
+        function scaled(ms) {
+            return Math.round(ms * speedFactor());
+        }
+
+        function setButtons(disabled) {
+            buttons.forEach(button => button.disabled = disabled);
+        }
+
+        function clearActive() {
+            document.querySelectorAll(".node-card, .flow-line").forEach(element => {
+                element.classList.remove("active");
+            });
+        }
+
+        function resetVisual() {
+            clearActive();
+            packet.style.opacity = "0";
+            packet.setAttribute("fill", "#dc2626");
+            stepList.innerHTML = "";
+            log.innerHTML = "";
+        }
+
+        function addLog(text, mode) {
+            const row = document.createElement("p");
+            const now = new Date().toLocaleTimeString();
+            row.innerHTML = `<span class="time">[${now}]</span> <span class="mode">${mode}</span> ${text}`;
+            log.appendChild(row);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function renderSteps(steps) {
+            stepList.innerHTML = "";
+            steps.forEach((step, index) => {
+                const item = document.createElement("div");
+                item.className = "step";
+                item.id = `step-${index}`;
+                item.innerHTML = `<strong>${step.title}</strong><span>${step.text}</span>`;
+                stepList.appendChild(item);
+            });
+        }
+
+        function setStep(index) {
+            document.querySelectorAll(".step").forEach((item, itemIndex) => {
+                item.classList.toggle("active", itemIndex === index);
+                item.classList.toggle("done", itemIndex < index);
+            });
+        }
+
+        async function movePacket(from, to, color) {
+            const start = positions[from];
+            const end = positions[to];
+
+            packet.style.transition = "none";
+            packet.setAttribute("cx", start.x);
+            packet.setAttribute("cy", start.y);
+            packet.setAttribute("fill", color);
+            packet.style.opacity = "1";
+
+            await delay(40);
+
+            const duration = scaled(1050);
+            packet.style.transition = `cx ${duration}ms ease, cy ${duration}ms ease, opacity 0.2s ease, fill 0.2s ease`;
+            packet.setAttribute("cx", end.x);
+            packet.setAttribute("cy", end.y);
+
+            await delay(duration + 120);
+        }
+
+        async function runSteps(steps, mode, options = {}) {
+            const keepDisabled = Boolean(options.keepDisabled);
+            setButtons(true);
+
+            if (!options.keepLog) {
+                resetVisual();
+            } else {
+                clearActive();
+                packet.style.opacity = "0";
+            }
+
+            renderSteps(steps);
+            addLog(`Bắt đầu mô phỏng ${mode}.`, mode);
+
+            for (let index = 0; index < steps.length; index++) {
+                const step = steps[index];
+                clearActive();
+                setStep(index);
+
+                document.getElementById(step.node).classList.add("active");
+                document.getElementById(step.arrow).classList.add("active");
+
+                await movePacket(step.from, step.to, step.color);
+                addLog(step.log, mode);
+                await delay(scaled(850));
+            }
+
+            clearActive();
+            document.querySelectorAll(".step").forEach(item => item.classList.add("done"));
+            packet.style.opacity = "0";
+            addLog(`Hoàn tất mô phỏng ${mode}.`, mode);
+
+            if (!keepDisabled) {
+                setButtons(false);
+            }
+        }
+
+        async function runBoth() {
+            setButtons(true);
+            resetVisual();
+            await runSteps(rdbSteps, "RDB", { keepDisabled: true, keepLog: true });
+            await delay(scaled(1000));
+            await runSteps(aofSteps, "AOF", { keepDisabled: true, keepLog: true });
+            setButtons(false);
+        }
+
+        document.getElementById("rdbBtn").addEventListener("click", () => runSteps(rdbSteps, "RDB"));
+        document.getElementById("aofBtn").addEventListener("click", () => runSteps(aofSteps, "AOF"));
+        document.getElementById("bothBtn").addEventListener("click", runBoth);
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            resetVisual();
+            renderSteps(rdbSteps);
+            addLog("Sẵn sàng. Chọn RDB, AOF hoặc chạy cả hai để xem từng bước backup.", "INIT");
+        });
+
+        renderSteps(rdbSteps);
+        addLog("Sẵn sàng. Chọn RDB, AOF hoặc chạy cả hai để xem từng bước backup.", "INIT");
+    </script>
+</body>
+</html>
