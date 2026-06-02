@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Luồng Spring Security</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 { text-align: center; color: #0f172a; margin-top: 0; }
+
+        .scenario-box {
+            background: #eef2ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #c7d2fe;
+        }
+
+        select {
+            padding: 8px 12px;
+            font-size: 15px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            font-weight: bold;
+            color: #1e293b;
+            cursor: pointer;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) { background: #059669; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* Đồ thị mạng lưới */
+        .network-graph {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .lines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* Các Node */
+        .node {
+            position: absolute;
+            z-index: 2;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            width: 180px;
+        }
+        
+        .node h4 { margin: 0 0 5px 0; font-size: 14px; }
+        .node p { margin: 0; font-size: 11px; color: #64748b; }
+
+        .node-details {
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: monospace;
+            background: #f8fafc;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+            min-height: 35px;
+            word-wrap: break-word;
+        }
+
+        .node.active { transform: translate(-50%, -50%) scale(1.05); }
+
+        /* Tọa độ Node */
+        #node-client { top: 225px; left: 15%; border-color: #64748b; }
+        #node-filter { top: 225px; left: 50%; border-color: #3b82f6; background: #eff6ff;} /* Filter Chain */
+        #node-auth-mgr { top: 80px; left: 50%; border-color: #f59e0b; }
+        #node-user-details { top: 80px; left: 85%; border-color: #8b5cf6; }
+        #node-context { top: 370px; left: 50%; border-color: #14b8a6; }
+        #node-controller { top: 225px; left: 85%; border-color: #10b981; }
+
+        /* Gói tin */
+        .packet {
+            position: absolute;
+            z-index: 3;
+            padding: 5px 10px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 12px;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: top 1s ease-in-out, left 1s ease-in-out, opacity 0.3s;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+            white-space: nowrap;
+        }
+
+        /* Bảng Log */
+        .system-log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+        .log-time { color: #64748b; margin-right: 8px; }
+        .log-step { color: #fcd34d; font-weight: bold; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #34d399; }
+        .log-warn { color: #fbbf24; }
+        .log-error { color: #f87171; font-weight: bold; }
+        .log-sub { padding-left: 20px; color: #cbd5e1; display: block; font-size: 12.5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Mô phỏng Kiến trúc Spring Security</h2>
+    
+    <div class="scenario-box">
+        <label for="scenarioSelect"><b>Chọn Kịch bản:</b></label>
+        <select id="scenarioSelect" onchange="resetSim()">
+            <option value="success">1. Đăng nhập thành công (Admin)</option>
+            <option value="fail">2. Sai mật khẩu (Lỗi 401 Unauthorized)</option>
+            <option value="forbidden">3. Đăng nhập đúng, nhưng sai Role (Lỗi 403 Forbidden)</option>
+        </select>
+    </div>
+
+    <div class="controls">
+        <button id="btn-run" onclick="runSimulation()">Gửi Request Bắt đầu</button>
+        <button id="btn-reset" onclick="resetSim()" style="background:#64748b;">Khôi phục</button>
+    </div>
+
+    <div class="network-graph">
+        <svg class="lines">
+            <line x1="15%" y1="225" x2="50%" y2="225" stroke="#cbd5e1" stroke-width="2" />
+            <line x1="50%" y1="225" x2="50%" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="50%" y1="80" x2="85%" y2="80" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="50%" y1="225" x2="50%" y2="370" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="50%" y1="225" x2="85%" y2="225" stroke="#cbd5e1" stroke-width="2" />
+        </svg>
+
+        <div class="node" id="node-client">
+            <h4>🌐 Trình duyệt / App</h4>
+            <div class="node-details" id="detail-client">POST /api/admin/data<br>Body: {user, pass}</div>
+        </div>
+
+        <div class="node" id="node-filter">
+            <h4>🛡️ SecurityFilterChain</h4>
+            <p>Authentication & Authorization</p>
+            <div class="node-details" id="detail-filter">- UsernamePasswordFilter<br>- AuthorizationFilter</div>
+        </div>
+
+        <div class="node" id="node-auth-mgr">
+            <h4>🔑 AuthenticationManager</h4>
+            <p>ProviderManager</p>
+            <div class="node-details" id="detail-auth-mgr">So sánh mật khẩu<br>(BCryptPasswordEncoder)</div>
+        </div>
+
+        <div class="node" id="node-user-details">
+            <h4>🗄️ UserDetailsService</h4>
+            <p>Database / LDAP</p>
+            <div class="node-details" id="detail-user-details">loadUserByUsername()</div>
+        </div>
+
+        <div class="node" id="node-context">
+            <h4>📦 SecurityContextHolder</h4>
+            <p>ThreadLocal Storage</p>
+            <div class="node-details" id="detail-context">Lưu trữ Session / Token hiện tại</div>
+        </div>
+
+        <div class="node" id="node-controller">
+            <h4>⚙️ DispatcherServlet</h4>
+            <p>Target Controller</p>
+            <div class="node-details" id="detail-controller">@GetMapping("/admin/data")<br>@PreAuthorize("hasRole('ADMIN')")</div>
+        </div>
+
+        <div class="packet" id="packet">Request</div>
+    </div>
+
+    <h3>Terminal (Spring Boot Logs)</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const nodes = {
+        client: document.getElementById('node-client'),
+        filter: document.getElementById('node-filter'),
+        auth: document.getElementById('node-auth-mgr'),
+        db: document.getElementById('node-user-details'),
+        context: document.getElementById('node-context'),
+        ctrl: document.getElementById('node-controller')
+    };
+    const packet = document.getElementById('packet');
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    function addLog(step, text, type = 'info', subItems = []) {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('div');
+        let typeClass = 'log-info';
+        if(type === 'success') typeClass = 'log-success';
+        if(type === 'warn') typeClass = 'log-warn';
+        if(type === 'error') typeClass = 'log-error';
+        
+        let html = `<span class="log-time">[${time}]</span> <span class="log-step">[${step}]</span> <span class="${typeClass}">${text}</span>`;
+        subItems.forEach(item => html += `<span class="log-sub">↳ ${item}</span>`);
+        p.innerHTML = html;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function highlightNode(nodeKey, color) {
+        nodes[nodeKey].style.borderColor = color;
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        
+        setTimeout(() => {
+            nodes[nodeKey].classList.remove('active');
+            nodes[nodeKey].style.boxShadow = 'none';
+        }, 1500);
+    }
+
+    function movePacket(startTop, startLeft, endTop, endLeft, text, color = '#3b82f6') {
+        return new Promise(async (resolve) => {
+            packet.innerText = text;
+            packet.style.background = color;
+            packet.style.boxShadow = `0 0 10px ${color}`;
+            packet.style.transition = 'none';
+            packet.style.top = startTop; packet.style.left = startLeft;
+            packet.style.opacity = '1';
+            
+            await delay(50);
+            
+            packet.style.transition = 'top 1s ease-in-out, left 1s ease-in-out';
+            packet.style.top = endTop; packet.style.left = endLeft;
+            
+            await delay(1000);
+            packet.style.opacity = '0';
+            resolve();
+        });
+    }
+
+    async function runSimulation() {
+        document.getElementById('btn-run').disabled = true;
+        const scenario = document.getElementById('scenarioSelect').value;
+        logContainer.innerHTML = '';
+        
+        // --- STEP 1: REQUEST HITS FILTER CHAIN ---
+        addLog('FILTER', 'Request đến từ Client bị chặn lại bởi SecurityFilterChain.', 'info', [
+            'Filter kích hoạt: UsernamePasswordAuthenticationFilter',
+            'Trích xuất username/password từ HTTP Request.'
+        ]);
+        await movePacket('225px', '15%', '225px', '50%', 'HTTP POST', '#64748b');
+        highlightNode('filter', '#3b82f6');
+        
+        // --- STEP 2: AUTHENTICATION MANAGER ---
+        addLog('AUTH_MGR', 'Filter ủy quyền cho AuthenticationManager để xác thực.', 'info');
+        await movePacket('225px', '50%', '80px', '50%', 'AuthToken (Unauthenticated)', '#f59e0b');
+        highlightNode('auth', '#f59e0b');
+        
+        // --- STEP 3: USER DETAILS SERVICE (DB) ---
+        addLog('USER_DETAILS', 'Gọi UserDetailsService.loadUserByUsername() để tìm user trong Database.', 'info');
+        await movePacket('80px', '50%', '80px', '85%', 'Truy vấn DB', '#8b5cf6');
+        highlightNode('db', '#8b5cf6');
+        
+        await delay(500);
+        
+        let dbRole = scenario === 'forbidden' ? 'ROLE_USER' : 'ROLE_ADMIN';
+        addLog('USER_DETAILS', `DB trả về UserDetails: { pass: '$2a$10...', authorities: [${dbRole}] }`, 'success');
+        await movePacket('80px', '85%', '80px', '50%', 'UserDetails', '#8b5cf6');
+        highlightNode('auth', '#f59e0b');
+
+        // --- STEP 4: CHECK PASSWORD ---
+        if (scenario === 'fail') {
+            addLog('AUTH_MGR', 'DaoAuthenticationProvider đối chiếu mật khẩu thất bại (BadCredentialsException)!', 'error');
+            await movePacket('80px', '50%', '225px', '50%', 'Exception', '#ef4444');
+            highlightNode('filter', '#ef4444');
+            
+            addLog('FILTER', 'AuthenticationEntryPoint trả về lỗi HTTP 401 Unauthorized.', 'error');
+            await movePacket('225px', '50%', '225px', '15%', '401 Unauthorized', '#ef4444');
+            highlightNode('client', '#ef4444');
+            document.getElementById('btn-run').disabled = false;
+            return;
+        }
+
+        addLog('AUTH_MGR', 'Mật khẩu trùng khớp. Tạo Authentication Token (Authenticated = true).', 'success');
+        await movePacket('80px', '50%', '225px', '50%', 'AuthToken (Authenticated)', '#10b981');
+        highlightNode('filter', '#3b82f6');
+
+        // --- STEP 5: SAVE TO SECURITY CONTEXT ---
+        addLog('CONTEXT', 'Lưu trữ thông tin User vào SecurityContextHolder (Phiên làm việc hiện tại).', 'success');
+        await movePacket('225px', '50%', '370px', '50%', 'Save Context', '#14b8a6');
+        highlightNode('context', '#14b8a6');
+        document.getElementById('detail-context').innerHTML = `Đang lưu User:<br>Authorities: [${dbRole}]`;
+
+        // --- STEP 6: AUTHORIZATION FILTER (Phân quyền) ---
+        addLog('FILTER', 'Chuyển sang AuthorizationFilter. Kiểm tra xem User có quyền truy cập API này không?', 'info', [
+            'API yêu cầu: hasRole("ADMIN")',
+            `User hiện có: ${dbRole}`
+        ]);
+        await delay(1000);
+
+        if (scenario === 'forbidden') {
+            addLog('FILTER', 'Truy cập bị từ chối! Ném ra AccessDeniedException.', 'error');
+            highlightNode('filter', '#ef4444');
+            await movePacket('225px', '50%', '225px', '15%', '403 Forbidden', '#ef4444');
+            highlightNode('client', '#ef4444');
+        } else {
+            addLog('FILTER', 'Quyền truy cập hợp lệ. Request được chuyển tiếp tới Controller.', 'success');
+            await movePacket('225px', '50%', '225px', '85%', 'Request tới API', '#10b981');
+            highlightNode('ctrl', '#10b981');
+            
+            addLog('CONTROLLER', 'Controller xử lý logic và trả về HTTP 200 OK.', 'success');
+            await movePacket('225px', '85%', '225px', '15%', '200 OK + Data', '#10b981');
+            highlightNode('client', '#10b981');
+        }
+
+        document.getElementById('btn-run').disabled = false;
+    }
+
+    function resetSim() {
+        document.getElementById('btn-run').disabled = false;
+        logContainer.innerHTML = '';
+        document.getElementById('detail-context').innerHTML = 'Lưu trữ Session / Token hiện tại';
+        
+        Object.keys(nodes).forEach(k => {
+            nodes[k].classList.remove('active');
+            nodes[k].style.boxShadow = 'none';
+        });
+        
+        addLog('HỆ THỐNG', `Sẵn sàng chạy: ${document.getElementById('scenarioSelect').options[document.getElementById('scenarioSelect').selectedIndex].text}`, 'warn');
+    }
+</script>
+
+</body>
+</html>
