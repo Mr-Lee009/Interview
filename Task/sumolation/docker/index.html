@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Quá trình Docker Build & Run</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 { text-align: center; color: #0f172a; margin-top: 0; }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active:not(:disabled) { transform: scale(0.95); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        
+        #btn-code { background: #64748b; }
+        #btn-build { background: #0db7ed; } /* Docker Blue */
+        #btn-run { background: #10b981; } /* Success Green */
+        #btn-reset { background: #ef4444; }
+
+        /* Đồ thị mạng lưới / Kiến trúc */
+        .architecture {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 50px;
+            box-sizing: border-box;
+        }
+
+        /* SVG Đường nối */
+        .lines {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Các Node (Khu vực) */
+        .zone {
+            position: relative;
+            z-index: 2;
+            background: white;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            width: 220px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        .zone h4 { margin: 0 0 15px 0; font-size: 16px; color: #334155; text-align: center;}
+        
+        .zone.active { border-color: #0db7ed; box-shadow: 0 0 20px rgba(13, 183, 237, 0.2); }
+
+        /* Các thành phần bên trong Zone */
+        .item {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            opacity: 0.2; /* Ẩn mờ lúc đầu */
+            transition: all 0.5s ease;
+        }
+
+        .item.visible { opacity: 1; }
+        
+        /* Specific items */
+        #item-files { border-color: #64748b; color: #475569; }
+        #item-image { background: #e0f2fe; border-color: #0db7ed; color: #0284c7; border-width: 2px;}
+        #item-container { background: #d1fae5; border-color: #10b981; color: #059669; border-width: 2px;}
+
+        /* Icon Bánh răng Docker Engine */
+        .gear {
+            font-size: 40px;
+            margin: 20px 0;
+            opacity: 0.2;
+            transition: opacity 0.3s;
+        }
+        .gear.spinning {
+            opacity: 1;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Gói tin (Packet di chuyển) */
+        .packet {
+            position: absolute;
+            z-index: 10;
+            padding: 8px 15px;
+            background: #0db7ed;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 8px;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: left 1s ease-in-out, opacity 0.3s;
+            box-shadow: 0 0 15px rgba(13, 183, 237, 0.6);
+            white-space: nowrap;
+            top: 50%; /* Luôn ở giữa theo chiều dọc */
+        }
+
+        /* Log hệ thống */
+        .system-log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .log-time { color: #64748b; margin-right: 10px; }
+        .log-cmd { color: #fcd34d; font-weight: bold; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #34d399; }
+        .log-build { color: #cbd5e1; padding-left: 20px; display: block; font-size: 13px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kiến trúc Đóng gói & Chạy Ứng dụng Docker</h2>
+    
+    <div class="controls">
+        <button id="btn-code" onclick="step1_Code()">1. Viết Code & Dockerfile</button>
+        <button id="btn-build" onclick="step2_Build()" disabled>2. Chạy 'docker build'</button>
+        <button id="btn-run" onclick="step3_Run()" disabled>3. Chạy 'docker run'</button>
+        <button id="btn-reset" onclick="resetSim()">Khôi phục</button>
+    </div>
+
+    <div class="architecture">
+        <svg class="lines">
+            <line x1="16%" y1="50%" x2="50%" y2="50%" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="50%" y1="50%" x2="84%" y2="50%" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,5" />
+        </svg>
+
+        <div class="zone" id="zone-dev">
+            <h4>💻 Máy tính Local</h4>
+            <div class="item" id="item-files">
+                📄 app.py<br>
+                📄 requirements.txt<br>
+                🐳 Dockerfile
+            </div>
+        </div>
+
+        <div class="zone" id="zone-engine">
+            <h4>🐳 Docker Engine</h4>
+            <div class="gear" id="gear-icon">⚙️</div>
+            <div class="item" id="item-image">
+                📦 Image: python-app:v1<br>
+                (Read-only Template)
+            </div>
+        </div>
+
+        <div class="zone" id="zone-server">
+            <h4>🌐 Production Server</h4>
+            <div class="item" id="item-container">
+                🟢 Container Đang Chạy<br>
+                ID: a1b2c3d4e5f6<br>
+                Port Mapped: 8000->8000
+            </div>
+        </div>
+
+        <div class="packet" id="packet">Dữ liệu</div>
+    </div>
+
+    <h3>Terminal Log</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const logContainer = document.getElementById('logContainer');
+    const packet = document.getElementById('packet');
+    
+    const elements = {
+        files: document.getElementById('item-files'),
+        image: document.getElementById('item-image'),
+        container: document.getElementById('item-container'),
+        gear: document.getElementById('gear-icon'),
+        zoneDev: document.getElementById('zone-dev'),
+        zoneEngine: document.getElementById('zone-engine'),
+        zoneServer: document.getElementById('zone-server'),
+        btnCode: document.getElementById('btn-code'),
+        btnBuild: document.getElementById('btn-build'),
+        btnRun: document.getElementById('btn-run')
+    };
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    function addLog(cmd, text, type = 'info', buildSteps = []) {
+        const time = new Date().toLocaleTimeString();
+        const p = document.createElement('div');
+        let typeClass = type === 'success' ? 'log-success' : 'log-info';
+        
+        let html = `<span class="log-time">[${time}]</span> `;
+        if (cmd) html += `<span class="log-cmd">$&gt; ${cmd}</span><br>`;
+        html += `<span class="${typeClass}">${text}</span>`;
+        
+        buildSteps.forEach(step => {
+            html += `<span class="log-build">${step}</span>`;
+        });
+        
+        p.innerHTML = html;
+        logContainer.appendChild(p);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function animatePacket(startLeft, endLeft, text, color) {
+        return new Promise(async (resolve) => {
+            packet.innerText = text;
+            packet.style.background = color;
+            packet.style.boxShadow = `0 0 15px ${color}`;
+            packet.style.transition = 'none';
+            packet.style.left = startLeft;
+            packet.style.opacity = '1';
+            
+            await delay(50); // Reflow
+            
+            packet.style.transition = 'left 1.2s ease-in-out';
+            packet.style.left = endLeft;
+            
+            await delay(1200);
+            packet.style.opacity = '0';
+            resolve();
+        });
+    }
+
+    // --- BƯỚC 1: VIẾT CODE ---
+    async function step1_Code() {
+        elements.btnCode.disabled = true;
+        elements.zoneDev.classList.add('active');
+        
+        addLog('mkdir my-app && cd my-app', 'Đang khởi tạo mã nguồn dự án Python Web.', 'info');
+        await delay(500);
+        
+        elements.files.classList.add('visible');
+        addLog('', 'Đã chuẩn bị xong file requirements.txt, app.py và định nghĩa Dockerfile.', 'success');
+        
+        elements.btnBuild.disabled = false;
+    }
+
+    // --- BƯỚC 2: BUILD IMAGE ---
+    async function step2_Build() {
+        elements.btnBuild.disabled = true;
+        elements.zoneDev.classList.remove('active');
+        elements.zoneEngine.classList.add('active');
+        
+        addLog('docker build -t python-app:v1 .', 'Đang gửi context tới Docker daemon để bắt đầu Build Image...', 'info');
+        
+        // Bay từ Dev sang Engine
+        await animatePacket('16%', '50%', 'Đọc Dockerfile & Source Code', '#64748b');
+        
+        elements.gear.classList.add('spinning');
+        
+        addLog('', 'Thực thi các Step trong Dockerfile:', 'info', [
+            'Step 1/5 : FROM python:3.9-slim ---> Kéo môi trường Python gốc về',
+            'Step 2/5 : WORKDIR /app ---> Tạo thư mục làm việc',
+            'Step 3/5 : COPY requirements.txt . && pip install -r requirements.txt ---> Cài thư viện',
+            'Step 4/5 : COPY . . ---> Đóng gói mã nguồn',
+            'Step 5/5 : CMD ["python", "app.py"] ---> Khai báo lệnh chạy'
+        ]);
+        
+        await delay(3000); // Đợi Engine quay
+        elements.gear.classList.remove('spinning');
+        
+        elements.image.classList.add('visible');
+        addLog('', 'Successfully built a1b2c3d4e5f6. Đã tạo Docker Image thành công! Sẵn sàng triển khai.', 'success');
+        
+        elements.btnRun.disabled = false;
+    }
+
+    // --- BƯỚC 3: RUN CONTAINER ---
+    async function step3_Run() {
+        elements.btnRun.disabled = true;
+        elements.zoneEngine.classList.remove('active');
+        elements.zoneServer.classList.add('active');
+        
+        addLog('docker run -d -p 8000:8000 --name web_server python-app:v1', 'Yêu cầu Docker Engine tạo Container từ Image vừa build.', 'info');
+        
+        // Bay từ Engine sang Server
+        await animatePacket('50%', '84%', 'Khởi tạo Container từ Image', '#0db7ed');
+        
+        elements.container.classList.add('visible');
+        addLog('', 'Container [web_server] đã khởi động thành công và đang chạy ngầm (-d).', 'success', [
+            'Network: Ánh xạ cổng 8000 của máy chủ (Host) vào cổng 8000 của Container.',
+            'Trạng thái: Ứng dụng Python Web đang lắng nghe request.'
+        ]);
+    }
+
+    // --- RESET ---
+    function resetSim() {
+        elements.btnCode.disabled = false;
+        elements.btnBuild.disabled = true;
+        elements.btnRun.disabled = true;
+        
+        ['zoneDev', 'zoneEngine', 'zoneServer'].forEach(z => elements[z].classList.remove('active'));
+        ['files', 'image', 'container'].forEach(i => elements[i].classList.remove('visible'));
+        
+        elements.gear.classList.remove('spinning');
+        logContainer.innerHTML = '';
+        addLog('', 'Hệ thống đã được làm mới. Sẵn sàng mô phỏng.', 'info');
+    }
+</script>
+
+</body>
+</html>
