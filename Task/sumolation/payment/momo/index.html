@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng luồng thanh toán MoMo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --text: #182230;
+            --muted: #667085;
+            --line: #d9e2ef;
+            --momo: #a50064;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --orange: #d97706;
+            --purple: #7c3aed;
+            --red: #dc2626;
+            --dark: #111827;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            width: min(1440px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 14px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(28px, 4vw, 44px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            max-width: 820px;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .badge {
+            border: 1px solid #f9a8d4;
+            background: #fdf2f8;
+            color: var(--momo);
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 4fr) minmax(260px, 1fr);
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        .diagram-card {
+            overflow: hidden;
+        }
+
+        .toolbar {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-title {
+            font-weight: 900;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            min-height: 34px;
+            padding: 0 11px;
+            background: #ffffff;
+            color: #344054;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f8fafc;
+        }
+
+        .primary {
+            border-color: #f9a8d4;
+            background: #fdf2f8;
+            color: var(--momo);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            background: #fcfcfd;
+        }
+
+        .header-legend {
+            grid-column: 1 / -1;
+            padding: 0;
+            border-bottom: 0;
+            background: transparent;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 9px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            color: #475467;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 0;
+            border-top: 2px solid #98a2b3;
+            display: inline-block;
+        }
+
+        .legend-line.create {
+            border-top-color: var(--blue);
+        }
+
+        .legend-line.redirect {
+            border-top-color: var(--orange);
+            border-top-style: dashed;
+        }
+
+        .legend-line.ipn {
+            border-top-color: var(--green);
+        }
+
+        .legend-icon {
+            width: 22px;
+            height: 22px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            display: inline-grid;
+            place-items: center;
+            font-size: 11px;
+            background: #f8fafc;
+        }
+
+        .viewport {
+            width: 100%;
+            height: min(58vh, 560px);
+            min-height: 440px;
+            overflow: auto;
+            scrollbar-gutter: stable both-edges;
+            background:
+                linear-gradient(#eef2f7 1px, transparent 1px),
+                linear-gradient(90deg, #eef2f7 1px, transparent 1px),
+                #fbfcff;
+            background-size: 26px 26px;
+        }
+
+        .diagram {
+            width: var(--diagram-width, 100%);
+            min-width: var(--diagram-min-width, 1300px);
+            min-height: var(--diagram-min-height, 720px);
+            aspect-ratio: 1300 / 720;
+            display: block;
+        }
+
+        .zone rect {
+            stroke-width: 2;
+            rx: 14;
+            stroke-dasharray: 10 8;
+        }
+
+        .zone.owned rect {
+            fill: rgba(37, 99, 235, 0.045);
+            stroke: rgba(37, 99, 235, 0.42);
+        }
+
+        .zone.momo-system rect {
+            fill: rgba(165, 0, 100, 0.055);
+            stroke: rgba(165, 0, 100, 0.48);
+        }
+
+        .zone.callback rect {
+            fill: rgba(22, 163, 74, 0.04);
+            stroke: rgba(22, 163, 74, 0.44);
+        }
+
+        .zone text {
+            text-anchor: start;
+            font-weight: 900;
+            font-size: 16px;
+            fill: #1f2937;
+            letter-spacing: 0;
+        }
+
+        .zone .zone-sub {
+            font-size: 12px;
+            fill: #667085;
+            font-weight: 800;
+        }
+
+        .flow {
+            stroke: #98a2b3;
+            stroke-width: 2.4;
+            fill: none;
+            marker-end: url(#arrow);
+            stroke-linecap: round;
+        }
+
+        .flow.create {
+            stroke: var(--blue);
+        }
+
+        .flow.redirect {
+            stroke: var(--orange);
+            stroke-dasharray: 6 8;
+            animation: dash 1.2s linear infinite;
+        }
+
+        .flow.ipn {
+            stroke: var(--green);
+        }
+
+        .flow.verify {
+            stroke: var(--purple);
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -36; }
+        }
+
+        .node rect {
+            fill: #ffffff;
+            stroke: #cfd8e7;
+            stroke-width: 2;
+            rx: 8;
+            filter: drop-shadow(0 8px 12px rgba(16, 24, 40, 0.08));
+        }
+
+        .node text {
+            text-anchor: middle;
+            letter-spacing: 0;
+        }
+
+        .node .title {
+            fill: #111827;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .node .sub {
+            fill: #667085;
+            font-size: 12px;
+        }
+
+        .node-icon-bg {
+            fill: #f8fafc;
+            stroke: #d0d5dd;
+            stroke-width: 1.5;
+            rx: 7;
+        }
+
+        .node-icon-wrap {
+            width: 34px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            color: #344054;
+            font-size: 15px;
+        }
+
+        .node.user rect { stroke: var(--blue); }
+        .node.frontend rect { stroke: var(--orange); }
+        .node.backend rect { stroke: var(--green); }
+        .node.db rect { stroke: var(--purple); }
+        .node.momo rect { stroke: var(--momo); }
+
+        .card {
+            padding: 14px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 7px;
+            max-height: min(58vh, 560px);
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .step {
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 9px 10px;
+            background: #f8fafc;
+            color: #475467;
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            gap: 8px;
+            align-items: start;
+            line-height: 1.35;
+            cursor: pointer;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #d0d5dd;
+            font-weight: 900;
+            color: #344054;
+        }
+
+        .step strong {
+            display: block;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .step.active {
+            border-color: #f9a8d4;
+            background: #fdf2f8;
+            color: #9d174d;
+        }
+
+        .step.active .step-number {
+            background: var(--momo);
+            color: #ffffff;
+            border-color: var(--momo);
+        }
+
+        .note {
+            background: var(--dark);
+            color: #d1fae5;
+            border-radius: 8px;
+            padding: 12px;
+            font: 13px/1.5 Consolas, "Courier New", monospace;
+        }
+
+        .note span {
+            color: #fcd34d;
+            font-weight: 900;
+        }
+
+        .footer-card {
+            display: grid;
+            gap: 10px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .log-box {
+            background: #0f172a;
+            color: #dbeafe;
+            border-radius: 8px;
+            padding: 12px;
+            font: 13px/1.5 Consolas, "Courier New", monospace;
+            min-height: 74px;
+        }
+
+        .log-box span {
+            color: #fcd34d;
+            font-weight: 900;
+        }
+
+        @media (max-width: 1120px) {
+            header,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .viewport {
+                height: 520px;
+                min-height: 420px;
+            }
+
+            .steps {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .page {
+                width: min(100% - 20px, 1440px);
+                padding-top: 12px;
+            }
+
+            .viewport {
+                height: 480px;
+                min-height: 340px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header>
+            <div>
+                <h1>MoMo Payment Flow</h1>
+                <p class="subtitle">
+                    Mô phỏng luồng thanh toán online qua MoMo cho Spring Boot: tạo payment, nhận payUrl,
+                    redirect user, nhận IPN server-to-server, verify signature và cập nhật trạng thái.
+                </p>
+            </div>
+            <div class="badge">captureWallet / payUrl / IPN</div>
+
+            <div class="legend header-legend">
+                <span class="legend-item"><span class="legend-line create"></span>Luồng tạo payment backend -> MoMo</span>
+                <span class="legend-item"><span class="legend-line redirect"></span>Redirect qua browser/user</span>
+                <span class="legend-item"><span class="legend-line ipn"></span>IPN server-to-server</span>
+                <span class="legend-item"><span class="legend-icon"><i class="fa-solid fa-database"></i></span>DB lưu payment state</span>
+                <span class="legend-item"><span class="legend-icon"><i class="fa-solid fa-shield-halved"></i></span>Verify signature/check amount</span>
+                <span class="legend-item"><span class="legend-icon"><i class="fa-solid fa-draw-polygon"></i></span>Khung nét đứt = boundary từng hệ thống</span>
+            </div>
+        </header>
+
+        <section class="layout">
+            <section class="panel diagram-card">
+                <div class="toolbar">
+                    <div class="toolbar-title">Luồng xử lý chuẩn</div>
+                    <div class="actions">
+                        <button class="primary" id="playBtn" type="button"><i class="fa-solid fa-play"></i> Play</button>
+                        <button id="prevBtn" type="button">Prev</button>
+                        <button id="nextBtn" type="button">Next</button>
+                        <button id="resetBtn" type="button">Reset</button>
+                        <button id="zoomOutBtn" type="button">-</button>
+                        <span id="zoomLabel">100%</span>
+                        <button id="zoomInBtn" type="button">+</button>
+                    </div>
+                </div>
+
+                <div class="viewport" id="viewport">
+                    <svg class="diagram" id="diagram" viewBox="0 0 1300 720" role="img" aria-label="MoMo payment flow diagram">
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#98a2b3"></path>
+                            </marker>
+                        </defs>
+
+                        <g id="zoneLayer"></g>
+                        <g id="flowLayer"></g>
+                        <g id="nodeLayer"></g>
+                        <circle id="packet" cx="92" cy="100" r="10" fill="#a50064" opacity="0"></circle>
+                    </svg>
+                </div>
+            </section>
+
+            <section class="panel card steps-card">
+                <h2>12 bước xử lý</h2>
+                <div class="steps" id="steps"></div>
+            </section>
+        </section>
+
+        <footer class="panel card footer-card">
+            <h2>Log / thông tin cần thiết</h2>
+            <div class="footer-grid">
+                <div class="note" id="note">
+                    <span>Rule:</span> redirectUrl chỉ để user quay lại website. Trạng thái thanh toán chuẩn phải dựa vào IPN + verify signature + check orderId/amount trong DB.
+                </div>
+                <div class="log-box" id="logBox">
+                    <span>Step 1:</span> User bắt đầu thanh toán trên website.
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        const canvasWidth = 1300;
+        const canvasHeight = 720;
+        const zones = [
+            {
+                key: "owned",
+                title: "Hệ thống hiện tại",
+                sub: "Website frontend + Spring Boot backend + Database nội bộ",
+                x: 24,
+                y: 28,
+                width: 666,
+                height: 646,
+                type: "owned"
+            },
+            {
+                key: "momo-system",
+                title: "Hệ thống MoMo",
+                sub: "Gateway API, payUrl và màn hình checkout của MoMo",
+                x: 735,
+                y: 28,
+                width: 530,
+                height: 374,
+                type: "momo-system"
+            },
+            {
+                key: "callback",
+                title: "Callback sau thanh toán",
+                sub: "redirectUrl qua browser và ipnUrl server-to-server",
+                x: 735,
+                y: 438,
+                width: 530,
+                height: 206,
+                type: "callback"
+            }
+        ];
+
+        const nodes = [
+            { key: "user", title: "User", sub: "Khách hàng", x: 70, y: 130, type: "user", icon: "fa-user" },
+            { key: "frontend", title: "Website", sub: "Frontend", x: 295, y: 130, type: "frontend", icon: "fa-display" },
+            { key: "backend", title: "Spring Boot", sub: "/api/payments/momo/create", x: 505, y: 130, type: "backend", icon: "fa-server" },
+            { key: "db", title: "Database", sub: "payment=PENDING", x: 505, y: 330, type: "db", icon: "fa-database" },
+            { key: "momoApi", title: "MoMo API", sub: "/v2/gateway/api/create", x: 785, y: 130, type: "momo", icon: "fa-wallet" },
+            { key: "payUrl", title: "payUrl", sub: "Link thanh toán", x: 1035, y: 130, type: "momo", icon: "fa-link" },
+            { key: "momoPay", title: "MoMo Checkout", sub: "User thanh toán", x: 1035, y: 320, type: "momo", icon: "fa-mobile-screen" },
+            { key: "redirect", title: "redirectUrl", sub: "Quay về website", x: 295, y: 545, type: "frontend", icon: "fa-arrow-right-to-bracket" },
+            { key: "ipn", title: "ipnUrl", sub: "Server-to-server", x: 785, y: 545, type: "backend", icon: "fa-envelope-circle-check" },
+            { key: "verify", title: "Verify", sub: "signature + amount", x: 505, y: 545, type: "backend", icon: "fa-shield-halved" },
+            { key: "final", title: "Payment", sub: "SUCCESS / FAILED", x: 505, y: 660, type: "db", icon: "fa-circle-check" }
+        ];
+
+        const steps = [
+            { title: "User", text: "Khách bắt đầu thanh toán trên website.", from: "user", to: "frontend", line: "redirect" },
+            { title: "Website frontend", text: "Frontend gọi backend tạo giao dịch MoMo.", from: "frontend", to: "backend", line: "create" },
+            { title: "POST /api/payments/momo/create", text: "Spring Boot nhận request tạo payment.", from: "frontend", to: "backend", line: "create" },
+            { title: "Tạo PENDING trong DB", text: "Backend tạo order/payment PENDING trước khi gọi MoMo.", from: "backend", to: "db", line: "create" },
+            { title: "Gọi MoMo create", text: "Backend ký HMAC SHA256 và gọi /v2/gateway/api/create.", from: "backend", to: "momoApi", line: "create" },
+            { title: "MoMo trả payUrl", text: "MoMo trả link thanh toán cho backend/frontend.", from: "momoApi", to: "payUrl", line: "create" },
+            { title: "Redirect sang payUrl", text: "Frontend chuyển user sang trang thanh toán MoMo.", from: "frontend", to: "payUrl", line: "redirect" },
+            { title: "User thanh toán", text: "User xác nhận thanh toán trên MoMo Checkout.", from: "payUrl", to: "momoPay", line: "redirect" },
+            { title: "MoMo redirect về redirectUrl", text: "MoMo đưa user quay lại website. Không dùng bước này để mark PAID.", from: "momoPay", to: "redirect", line: "redirect" },
+            { title: "MoMo gọi ipnUrl", text: "MoMo gọi server-to-server vào backend để báo kết quả.", from: "momoPay", to: "ipn", line: "ipn" },
+            { title: "Verify IPN", text: "Backend verify signature và check partnerCode/orderId/amount với DB.", from: "ipn", to: "verify", line: "verify" },
+            { title: "Cập nhật payment", text: "Backend cập nhật payment SUCCESS hoặc FAILED trong DB.", from: "verify", to: "final", line: "ipn" }
+        ];
+
+        const nodeWidth = 160;
+        const nodeHeight = 88;
+        const nodeLayer = document.getElementById("nodeLayer");
+        const flowLayer = document.getElementById("flowLayer");
+        const stepsEl = document.getElementById("steps");
+        const packet = document.getElementById("packet");
+        const diagram = document.getElementById("diagram");
+        const viewport = document.getElementById("viewport");
+        const zoneLayer = document.getElementById("zoneLayer");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const logBox = document.getElementById("logBox");
+        let activeStep = 0;
+        let zoom = 1;
+        let playing = false;
+
+        function byKey(key) {
+            return nodes.find(node => node.key === key);
+        }
+
+        function center(node) {
+            return { x: node.x + nodeWidth / 2, y: node.y };
+        }
+
+        function zoneTemplate(zone) {
+            return `
+                <g class="zone ${zone.type}">
+                    <rect x="${zone.x}" y="${zone.y}" width="${zone.width}" height="${zone.height}"></rect>
+                    <text x="${zone.x + 20}" y="${zone.y + 30}">${zone.title}</text>
+                    <text class="zone-sub" x="${zone.x + 20}" y="${zone.y + 52}">${zone.sub}</text>
+                </g>
+            `;
+        }
+
+        function nodeTemplate(node) {
+            return `
+                <g class="node ${node.type}" id="node-${node.key}">
+                    <rect x="${node.x}" y="${node.y - nodeHeight / 2}" width="${nodeWidth}" height="${nodeHeight}"></rect>
+                    <rect class="node-icon-bg" x="${node.x + 13}" y="${node.y - 30}" width="34" height="28"></rect>
+                    <foreignObject x="${node.x + 13}" y="${node.y - 30}" width="34" height="28">
+                        <div class="node-icon-wrap" xmlns="http://www.w3.org/1999/xhtml">
+                            <i class="fa-solid ${node.icon}" aria-hidden="true"></i>
+                        </div>
+                    </foreignObject>
+                    <text class="title" x="${node.x + 98}" y="${node.y - 10}">${node.title}</text>
+                    <text class="sub" x="${node.x + 98}" y="${node.y + 17}">${node.sub}</text>
+                </g>
+            `;
+        }
+
+        function flowPath(step, index) {
+            const from = center(byKey(step.from));
+            const to = center(byKey(step.to));
+            const midX = Math.round((from.x + to.x) / 2);
+            const path = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
+            return `<path id="flow-${index}" class="flow ${step.line}" d="${path}"></path>`;
+        }
+
+        function render() {
+            zoneLayer.innerHTML = zones.map(zoneTemplate).join("");
+            nodeLayer.innerHTML = nodes.map(nodeTemplate).join("");
+            flowLayer.innerHTML = steps.map(flowPath).join("");
+            stepsEl.innerHTML = steps.map((step, index) => `
+                <div class="step" id="step-${index}" data-index="${index}">
+                    <div class="step-number">${index + 1}</div>
+                    <div>
+                        <strong>${step.title}</strong>
+                        <span>${step.text}</span>
+                    </div>
+                </div>
+            `).join("");
+
+            document.querySelectorAll(".step").forEach(item => {
+                item.addEventListener("click", () => setStep(Number(item.dataset.index)));
+            });
+        }
+
+        function setStep(index) {
+            activeStep = Math.max(0, Math.min(steps.length - 1, index));
+            document.querySelectorAll(".step").forEach((item, itemIndex) => {
+                item.classList.toggle("active", itemIndex === activeStep);
+            });
+            document.querySelectorAll(".flow").forEach((flow, flowIndex) => {
+                flow.style.opacity = flowIndex <= activeStep ? "1" : "0.22";
+                flow.style.strokeWidth = flowIndex === activeStep ? "4" : "2.4";
+            });
+            logBox.innerHTML = `<span>Step ${activeStep + 1}:</span> ${steps[activeStep].title} - ${steps[activeStep].text}`;
+            movePacketTo(activeStep);
+        }
+
+        function movePacketTo(index) {
+            const step = steps[index];
+            const target = center(byKey(step.to));
+            packet.style.transition = "cx 0.45s ease, cy 0.45s ease, opacity 0.2s ease, fill 0.2s ease";
+            packet.setAttribute("cx", target.x);
+            packet.setAttribute("cy", target.y);
+            packet.setAttribute("opacity", "1");
+            packet.setAttribute("fill", step.line === "ipn" || step.line === "verify" ? "#16a34a" : "#a50064");
+        }
+
+        function applyZoom() {
+            diagram.style.setProperty("--diagram-width", `${zoom * 100}%`);
+            diagram.style.setProperty("--diagram-min-width", `${Math.round(canvasWidth * zoom)}px`);
+            diagram.style.setProperty("--diagram-min-height", `${Math.round(canvasHeight * zoom)}px`);
+            zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+        }
+
+        async function play() {
+            if (playing) return;
+            playing = true;
+            for (let i = activeStep; i < steps.length; i++) {
+                setStep(i);
+                await new Promise(resolve => setTimeout(resolve, 950));
+            }
+            playing = false;
+        }
+
+        document.getElementById("playBtn").addEventListener("click", play);
+        document.getElementById("prevBtn").addEventListener("click", () => setStep(activeStep - 1));
+        document.getElementById("nextBtn").addEventListener("click", () => setStep(activeStep + 1));
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            activeStep = 0;
+            packet.setAttribute("opacity", "0");
+            setStep(0);
+            viewport.scrollLeft = 0;
+            viewport.scrollTop = 0;
+        });
+        document.getElementById("zoomInBtn").addEventListener("click", () => {
+            zoom = Math.min(1.8, Number((zoom + 0.15).toFixed(2)));
+            applyZoom();
+        });
+        document.getElementById("zoomOutBtn").addEventListener("click", () => {
+            zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
+            applyZoom();
+        });
+
+        render();
+        applyZoom();
+        setStep(0);
+    </script>
+</body>
+</html>

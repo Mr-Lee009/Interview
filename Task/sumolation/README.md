@@ -12,9 +12,10 @@ Thư mục này là bộ tài liệu ôn tập và mô phỏng kiến thức dù
 ## Cách đọc nhanh
 
 1. Mở `menu.md` để xem toàn bộ bản đồ tài liệu.
-2. Đọc file `doc.md` trong từng thư mục chủ đề để nắm khái niệm chính.
-3. Mở các file `index.html`, `index-2.html` hoặc `demo.html` nếu muốn xem phần mô phỏng trực quan.
-4. Với Design Pattern, đọc file tổng quan trước rồi đi vào từng nhóm `creational_patterns`, `structural_patterns`, `behavioral_patterns`.
+2. Đọc `SIMULATION_UI_RULES.md` nếu cần tạo hoặc chỉnh màn hình mô phỏng HTML.
+3. Đọc file `doc.md` trong từng thư mục chủ đề để nắm khái niệm chính.
+4. Mở các file `index.html`, `index-2.html` hoặc `demo.html` nếu muốn xem phần mô phỏng trực quan.
+5. Với Design Pattern, đọc file tổng quan trước rồi đi vào từng nhóm `creational_patterns`, `structural_patterns`, `behavioral_patterns`.
 
 ## Cấu trúc chính
 
@@ -27,6 +28,7 @@ Thư mục này là bộ tài liệu ôn tập và mô phỏng kiến thức dù
 ## Quy ước khi bổ sung tài liệu
 
 - Mỗi chủ đề nên có một `doc.md` làm điểm vào chính.
+- Khi tạo demo HTML, tuân theo `SIMULATION_UI_RULES.md`; lấy `AWS/index.html` làm màn hình mẫu.
 - Nếu thêm demo HTML, ghi chú lại trong `menu.md` để biết demo đó phục vụ mục đích gì.
 - Ưu tiên viết theo format phỏng vấn: khái niệm ngắn, luồng hoạt động, câu hỏi hay gặp, lỗi thường gặp và ví dụ thực tế.
 - Không cần biến project thành ứng dụng hoàn chỉnh nếu mục tiêu chỉ là lưu note phỏng vấn.

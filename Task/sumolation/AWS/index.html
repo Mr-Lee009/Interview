@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Services Simulation</title>
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+    >
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --text: #182230;
+            --muted: #667085;
+            --line: #d9e2ef;
+            --aws: #ff9900;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --red: #dc2626;
+            --purple: #7c3aed;
+            --cyan: #0891b2;
+            --dark: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            width: min(1420px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        h1, h2, h3, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: clamp(28px, 4vw, 46px);
+            line-height: 1.05;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            max-width: 760px;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .badge {
+            border: 1px solid #fed7aa;
+            background: #fff7ed;
+            color: #9a3412;
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        .tabs {
+            padding: 10px;
+            display: grid;
+            gap: 7px;
+            position: sticky;
+            top: 12px;
+        }
+
+        .tab {
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: #344054;
+            cursor: pointer;
+            padding: 11px 12px;
+            text-align: left;
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+        }
+
+        .tab:hover {
+            background: #f8fafc;
+            border-color: #e4e7ec;
+            transform: translateX(2px);
+        }
+
+        .tab.active {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: #9a3412;
+        }
+
+        .tab-icon {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: #f2f4f7;
+            color: var(--dark);
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .tab-icon i {
+            font-size: 15px;
+        }
+
+        .tab.active .tab-icon {
+            background: var(--aws);
+            color: #111827;
+        }
+
+        .tab-title {
+            display: block;
+            font-weight: 800;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        .tab-sub {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+
+        .content {
+            padding: 16px;
+            min-height: 720px;
+        }
+
+        .service-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .service-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .service-mark {
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+        }
+
+        .service-title h2 {
+            font-size: 28px;
+            line-height: 1.15;
+        }
+
+        .summary {
+            color: var(--muted);
+            line-height: 1.5;
+            max-width: 780px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .pill {
+            padding: 7px 10px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            background: #f8fafc;
+            color: #475467;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .card {
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 14px;
+        }
+
+        .card h3 {
+            font-size: 17px;
+            margin-bottom: 9px;
+        }
+
+        .card ul {
+            margin: 0;
+            padding-left: 18px;
+            color: #475467;
+            line-height: 1.55;
+        }
+
+        .card li + li {
+            margin-top: 5px;
+        }
+
+        .diagram-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .diagram-toolbar {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .diagram-title {
+            font-weight: 800;
+        }
+
+        .diagram-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .zoom-btn {
+            border: 1px solid #d0d5dd;
+            background: #ffffff;
+            color: #344054;
+            border-radius: 8px;
+            min-height: 32px;
+            padding: 0 10px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .zoom-btn:hover {
+            background: #f8fafc;
+        }
+
+        .zoom-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f2f4f7;
+        }
+
+        .zoom-label {
+            min-width: 52px;
+            text-align: center;
+            color: #475467;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .diagram-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            background: #fcfcfd;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 9px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            color: #475467;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .legend-line {
+            width: 28px;
+            height: 0;
+            border-top: 2px solid #98a2b3;
+            display: inline-block;
+        }
+
+        .legend-line.dashed {
+            border-top-color: var(--aws);
+            border-top-style: dashed;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend-dot.aws { background: var(--aws); }
+        .legend-dot.blue { background: var(--blue); }
+        .legend-dot.green { background: var(--green); }
+        .legend-dot.purple { background: var(--purple); }
+
+        .legend-icon {
+            width: 22px;
+            height: 22px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            display: inline-grid;
+            place-items: center;
+            background: #f8fafc;
+            color: #344054;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .legend-icon i {
+            font-size: 11px;
+        }
+
+        .legend-icon.aws { background: #fff7ed; border-color: #fdba74; }
+        .legend-icon.blue { background: #eff6ff; border-color: #93c5fd; }
+        .legend-icon.green { background: #f0fdf4; border-color: #86efac; }
+        .legend-icon.purple { background: #f5f3ff; border-color: #c4b5fd; }
+
+        .status {
+            color: #027a48;
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .diagram-viewport {
+            width: 100%;
+            min-height: 520px;
+            overflow: auto;
+            background:
+                linear-gradient(#eef2f7 1px, transparent 1px),
+                linear-gradient(90deg, #eef2f7 1px, transparent 1px),
+                #fbfcff;
+            background-size: 26px 26px;
+        }
+
+        .diagram {
+            width: var(--diagram-width, 100%);
+            min-width: var(--diagram-min-width, 980px);
+            height: auto;
+            aspect-ratio: 980 / 430;
+            min-height: var(--diagram-min-height, 500px);
+            display: block;
+            transform-origin: top left;
+        }
+
+        .node rect {
+            fill: #ffffff;
+            stroke: #cfd8e7;
+            stroke-width: 2;
+            rx: 8;
+            filter: drop-shadow(0 8px 12px rgba(16, 24, 40, 0.08));
+        }
+
+        .node text {
+            text-anchor: middle;
+            letter-spacing: 0;
+        }
+
+        .node .icon-bg {
+            fill: #f8fafc;
+            stroke: #d0d5dd;
+            stroke-width: 1.5;
+            rx: 7;
+        }
+
+        .node-icon-wrap {
+            width: 34px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            color: #344054;
+            font-size: 15px;
+        }
+
+        .node .title {
+            fill: #111827;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .node .sub {
+            fill: #667085;
+            font-size: 13px;
+        }
+
+        .node.aws rect { stroke: var(--aws); }
+        .node.blue rect { stroke: var(--blue); }
+        .node.green rect { stroke: var(--green); }
+        .node.red rect { stroke: var(--red); }
+        .node.purple rect { stroke: var(--purple); }
+        .node.cyan rect { stroke: var(--cyan); }
+        .node.aws .icon-bg { fill: #fff7ed; stroke: #fdba74; }
+        .node.blue .icon-bg { fill: #eff6ff; stroke: #93c5fd; }
+        .node.green .icon-bg { fill: #f0fdf4; stroke: #86efac; }
+        .node.red .icon-bg { fill: #fef2f2; stroke: #fca5a5; }
+        .node.purple .icon-bg { fill: #f5f3ff; stroke: #c4b5fd; }
+        .node.cyan .icon-bg { fill: #ecfeff; stroke: #67e8f9; }
+
+        .flow {
+            stroke: #c5cedd;
+            stroke-width: 2.4;
+            fill: none;
+            marker-end: url(#arrow);
+            stroke-linecap: round;
+        }
+
+        .flow.hot {
+            stroke: var(--aws);
+            stroke-dasharray: 6 8;
+            animation: dash 1.2s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -36; }
+        }
+
+        .scenario {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .mini {
+            border: 1px solid #e4e7ec;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 112px;
+        }
+
+        .mini strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .mini p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .log {
+            margin-top: 14px;
+            background: #111827;
+            color: #d1fae5;
+            border-radius: 8px;
+            padding: 12px;
+            font: 13px/1.5 Consolas, "Courier New", monospace;
+        }
+
+        .log span {
+            color: #fcd34d;
+            font-weight: 800;
+        }
+
+        @media (max-width: 1080px) {
+            header,
+            .service-head,
+            .app {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                position: static;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .pill-row {
+                justify-content: flex-start;
+            }
+
+            .content {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .page {
+                width: min(100% - 20px, 1420px);
+                padding-top: 12px;
+            }
+
+            .tabs,
+            .scenario {
+                grid-template-columns: 1fr;
+            }
+
+            .service-title h2 {
+                font-size: 22px;
+            }
+
+            .diagram-viewport {
+                min-height: 380px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header>
+            <div>
+                <h1>AWS Services Simulation</h1>
+                <p class="subtitle">
+                    Mỗi tab mô phỏng một dịch vụ AWS phổ biến trong hệ thống backend/cloud.
+                    Chọn tab để xem dịch vụ đó dùng làm gì, khi nào dùng, và nó nằm ở đâu trong kiến trúc.
+                </p>
+            </div>
+            <div class="badge">Cloud interview map</div>
+        </header>
+
+        <section class="app">
+            <nav class="panel tabs" id="tabs"></nav>
+
+            <section class="panel content">
+                <div class="service-head">
+                    <div>
+                        <div class="service-title">
+                            <div class="service-mark" id="serviceMark">AWS</div>
+                            <h2 id="serviceName">AWS Overview</h2>
+                        </div>
+                        <p class="summary" id="serviceSummary"></p>
+                    </div>
+                    <div class="pill-row" id="pillRow"></div>
+                </div>
+
+                <div class="grid">
+                    <div class="card diagram-card">
+                        <div class="diagram-toolbar">
+                            <div class="diagram-title" id="diagramTitle">Architecture flow</div>
+                            <div class="diagram-actions">
+                                <button class="zoom-btn" type="button" id="zoomOutBtn">-</button>
+                                <span class="zoom-label" id="zoomLabel">100%</span>
+                                <button class="zoom-btn" type="button" id="zoomInBtn">+</button>
+                                <button class="zoom-btn" type="button" id="zoomResetBtn">Reset</button>
+                                <div class="status" id="serviceStatus">Ready</div>
+                            </div>
+                        </div>
+                        <div class="diagram-legend" aria-label="Diagram legend">
+                            <span class="legend-item"><span class="legend-line dashed"></span>Nét đứt cam: luồng chính / traffic chính</span>
+                            <span class="legend-item"><span class="legend-line"></span>Nét liền xám: kết nối phụ / đồng bộ / hỗ trợ</span>
+                            <span class="legend-item"><span class="legend-icon aws"><i class="fa-solid fa-cloud"></i></span>AWS service trung tâm</span>
+                            <span class="legend-item"><span class="legend-icon blue"><i class="fa-solid fa-globe"></i></span>User / network entry</span>
+                            <span class="legend-item"><span class="legend-icon green"><i class="fa-solid fa-server"></i></span>Application / compute</span>
+                            <span class="legend-item"><span class="legend-icon purple"><i class="fa-solid fa-database"></i></span>Database / data / security</span>
+                        </div>
+                        <div class="diagram-viewport" id="diagramViewport">
+                            <svg class="diagram" id="diagramSvg" viewBox="0 0 980 430" role="img" aria-label="AWS service architecture diagram">
+                                <defs>
+                                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#c5cedd"></path>
+                                    </marker>
+                                </defs>
+                                <g id="diagramLayer"></g>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Khi nào dùng?</h3>
+                        <ul id="useCases"></ul>
+                    </div>
+                </div>
+
+                <div class="scenario">
+                    <div class="mini">
+                        <strong>Điểm mạnh</strong>
+                        <p id="strength"></p>
+                    </div>
+                    <div class="mini">
+                        <strong>Lưu ý vận hành</strong>
+                        <p id="warning"></p>
+                    </div>
+                    <div class="mini">
+                        <strong>Ví dụ thực tế</strong>
+                        <p id="example"></p>
+                    </div>
+                </div>
+
+                <div class="log" id="serviceLog"></div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const services = [
+            {
+                key: "overview",
+                short: "AWS",
+                name: "AWS Overview",
+                group: "Cloud platform",
+                summary: "AWS là hệ sinh thái dịch vụ cloud để chạy server, lưu file, quản lý database, network, security, monitoring và automation.",
+                tags: ["Compute", "Storage", "Database", "Network", "Security"],
+                useCases: [
+                    "Xây dựng backend có thể scale theo tải.",
+                    "Triển khai hệ thống nhiều môi trường: dev, staging, production.",
+                    "Thay thế hoặc mở rộng hạ tầng server vật lý.",
+                    "Kết hợp nhiều dịch vụ managed để giảm công vận hành."
+                ],
+                strength: "Có nhiều dịch vụ ghép lại thành kiến trúc hoàn chỉnh, từ compute đến monitoring.",
+                warning: "AWS giúp scale nhanh, nhưng nếu thiết kế network, IAM hoặc cost sai thì vận hành sẽ rất đau đầu.",
+                example: "Ecommerce dùng ALB + ECS/EC2 + RDS + S3 + CloudFront + CloudWatch.",
+                log: "AWS = cloud toolbox. Chọn đúng service cho đúng bài toán quan trọng hơn dùng thật nhiều service.",
+                nodes: [
+                    ["User", "Client / Browser", 60, 170, "blue"],
+                    ["Edge", "CloudFront / DNS", 230, 170, "aws"],
+                    ["App", "EC2 / ECS / Lambda", 420, 170, "green"],
+                    ["Data", "RDS / S3 / DynamoDB", 630, 170, "purple"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [2, 3, true]]
+            },
+            {
+                key: "ec2",
+                short: "EC2",
+                name: "EC2",
+                group: "Compute",
+                summary: "EC2 là máy chủ ảo. Team tự kiểm soát OS, runtime, deployment, scaling và security patch nhiều hơn các dịch vụ managed.",
+                tags: ["Virtual machine", "Backend", "Auto Scaling"],
+                useCases: [
+                    "Chạy app truyền thống như Java Spring Boot, Node.js, Nginx.",
+                    "Migrate hệ thống cũ từ server vật lý lên cloud.",
+                    "Cần kiểm soát sâu môi trường runtime hoặc package OS.",
+                    "Chạy worker/background job dài hạn."
+                ],
+                strength: "Linh hoạt và dễ hiểu vì giống server truyền thống.",
+                warning: "Phải tự lo patch OS, deploy, process health, capacity và hardening.",
+                example: "ALB public nhận HTTPS, forward vào nhiều EC2 private chạy backend.",
+                log: "EC2 phù hợp khi cần kiểm soát server. Nếu muốn ít vận hành hơn, cân nhắc ECS, Lambda hoặc managed service.",
+                nodes: [
+                    ["Internet", "User traffic", 70, 170, "blue"],
+                    ["ALB", "Load balancer", 250, 170, "aws"],
+                    ["EC2 A", "Backend instance", 470, 105, "green"],
+                    ["EC2 B", "Backend instance", 470, 235, "green"],
+                    ["RDS", "Private database", 670, 170, "purple"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [1, 3, true], [2, 4, false], [3, 4, false]]
+            },
+            {
+                key: "s3",
+                short: "S3",
+                name: "S3",
+                group: "Storage",
+                summary: "S3 là object storage dùng để lưu file, ảnh, video, backup, log và static asset. Truy cập qua API/HTTP, không phải ổ đĩa gắn trực tiếp vào server.",
+                tags: ["Object storage", "File upload", "Backup"],
+                useCases: [
+                    "Lưu ảnh sản phẩm, avatar, hóa đơn PDF.",
+                    "Lưu backup, log, report export.",
+                    "Host static website hoặc static asset.",
+                    "Kết hợp CloudFront để phân phối file nhanh hơn."
+                ],
+                strength: "Bền vững, scale tốt, phù hợp file/object lớn và nhiều.",
+                warning: "Cần cấu hình bucket policy, encryption và public access rất cẩn thận.",
+                example: "Backend nhận ảnh món ăn, upload lên S3, lưu object key vào database.",
+                log: "S3 là nơi để file sống lâu dài. Đừng lưu upload quan trọng trong disk local của EC2.",
+                nodes: [
+                    ["Client", "Upload file", 80, 170, "blue"],
+                    ["Backend", "Validate request", 270, 170, "green"],
+                    ["S3 Bucket", "Object storage", 500, 170, "aws"],
+                    ["CloudFront", "CDN cache", 690, 170, "cyan"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [2, 3, false]]
+            },
+            {
+                key: "vpc",
+                short: "VPC",
+                name: "VPC, Subnet, Route Table",
+                group: "Networking",
+                summary: "VPC là mạng riêng ảo trong AWS. Subnet chia vùng mạng, Route Table quyết định traffic đi đâu, public/private subnet giúp tách lớp hệ thống.",
+                tags: ["Network", "Private subnet", "Routing"],
+                useCases: [
+                    "Tách public layer và private application/database layer.",
+                    "Đặt RDS, ElastiCache trong private subnet.",
+                    "Kiểm soát đường ra internet qua NAT Gateway.",
+                    "Thiết kế network nhiều AZ để tăng availability."
+                ],
+                strength: "Giúp cô lập và kiểm soát network rõ ràng.",
+                warning: "Sai route table hoặc subnet design có thể làm service không kết nối được hoặc bị public ngoài ý muốn.",
+                example: "ALB ở public subnet, ECS/EC2 và RDS ở private subnet.",
+                log: "Rule thực dụng: public chỉ để điểm vào, data layer nên private by default.",
+                nodes: [
+                    ["Internet", "0.0.0.0/0", 65, 170, "blue"],
+                    ["Public Subnet", "ALB / NAT", 250, 110, "aws"],
+                    ["Private App", "EC2 / ECS", 470, 110, "green"],
+                    ["Private DB", "RDS", 670, 110, "purple"],
+                    ["NAT Gateway", "Outbound only", 250, 270, "aws"],
+                    ["Package Repo", "Internet update", 470, 270, "cyan"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [2, 3, false], [2, 4, false], [4, 5, false]]
+            },
+            {
+                key: "iam",
+                short: "IAM",
+                name: "IAM",
+                group: "Security",
+                summary: "IAM quản lý danh tính và quyền truy cập. Đây là lớp kiểm soát ai được làm gì với resource nào trong AWS.",
+                tags: ["User", "Role", "Policy", "Least privilege"],
+                useCases: [
+                    "Cấp quyền cho backend upload file lên S3.",
+                    "Tạo role cho EC2, ECS, Lambda thay vì hardcode access key.",
+                    "Quản lý quyền admin/developer/read-only.",
+                    "Audit và kiểm soát quyền theo nguyên tắc least privilege."
+                ],
+                strength: "Kiểm soát quyền rất chi tiết theo action và resource.",
+                warning: "Policy quá rộng như *:* là mùi khét. Dễ gây lộ dữ liệu hoặc bị chiếm quyền.",
+                example: "ECS Task Role chỉ được s3:PutObject vào bucket upload cụ thể.",
+                log: "IAM tốt là không thấy nó ồn ào. IAM sai thì thường thành postmortem.",
+                nodes: [
+                    ["Developer", "Human user", 80, 170, "blue"],
+                    ["IAM Policy", "Allow / Deny", 270, 170, "aws"],
+                    ["IAM Role", "Temporary credential", 470, 170, "green"],
+                    ["S3 / RDS", "Target resource", 680, 170, "purple"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [2, 3, true]]
+            },
+            {
+                key: "rds",
+                short: "RDS",
+                name: "RDS",
+                group: "Database",
+                summary: "RDS là managed relational database service. AWS hỗ trợ backup, patching, monitoring, Multi-AZ và read replica cho database quan hệ.",
+                tags: ["PostgreSQL", "MySQL", "Backup", "Multi-AZ"],
+                useCases: [
+                    "Lưu order, payment, inventory, user data.",
+                    "Cần transaction ACID và relational schema.",
+                    "Muốn database managed thay vì tự cài trên EC2.",
+                    "Cần backup tự động, snapshot, read replica."
+                ],
+                strength: "Giảm rất nhiều công vận hành database so với tự cài trên EC2.",
+                warning: "Vẫn phải thiết kế schema, index, connection pool, backup window và instance size đúng.",
+                example: "App gọi món dùng RDS PostgreSQL cho orders, payments, menu.",
+                log: "RDS managed phần hạ tầng database, không managed hộ query chậm. Index vẫn là việc của team.",
+                nodes: [
+                    ["Backend", "Private app", 90, 170, "green"],
+                    ["RDS Primary", "Write database", 320, 170, "purple"],
+                    ["Standby AZ", "Multi-AZ failover", 560, 95, "aws"],
+                    ["Read Replica", "Read/report", 560, 245, "cyan"]
+                ],
+                flows: [[0, 1, true], [1, 2, false], [1, 3, false]]
+            },
+            {
+                key: "alb",
+                short: "ALB",
+                name: "Load Balancer & Auto Scaling",
+                group: "Availability",
+                summary: "Load Balancer phân phối traffic vào nhiều target. Auto Scaling tự tăng hoặc giảm số instance/task theo tải.",
+                tags: ["ALB", "Target Group", "Auto Scaling"],
+                useCases: [
+                    "Chạy nhiều backend instance sau một endpoint.",
+                    "Tự loại instance lỗi khỏi traffic.",
+                    "Tăng instance khi CPU/request tăng.",
+                    "Blue-green hoặc rolling deployment."
+                ],
+                strength: "Tăng availability và scale ứng dụng theo tải.",
+                warning: "App nên stateless. Session không nên nằm trong RAM local của instance.",
+                example: "ALB nhận HTTPS rồi route vào target group EC2/ECS private.",
+                log: "Load Balancer là cửa vào ổn định. Auto Scaling là dây thun co giãn theo traffic.",
+                nodes: [
+                    ["Users", "HTTPS", 70, 170, "blue"],
+                    ["ALB", "Public entry", 250, 170, "aws"],
+                    ["Target A", "Healthy", 470, 90, "green"],
+                    ["Target B", "Healthy", 470, 170, "green"],
+                    ["Target C", "New scale out", 470, 250, "green"],
+                    ["Metrics", "CPU / Request", 680, 170, "cyan"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [1, 3, true], [1, 4, true], [5, 4, false]]
+            },
+            {
+                key: "cloudwatch",
+                short: "CW",
+                name: "CloudWatch & CloudTrail",
+                group: "Observability",
+                summary: "CloudWatch dùng cho metric, log, alarm, dashboard. CloudTrail dùng để audit hành động trong AWS account.",
+                tags: ["Metric", "Log", "Alarm", "Audit"],
+                useCases: [
+                    "Theo dõi CPU, memory, latency, error rate.",
+                    "Gom log application để debug production.",
+                    "Tạo alarm khi RDS storage thấp hoặc backend lỗi.",
+                    "Audit ai thay đổi IAM, Security Group, S3 bucket."
+                ],
+                strength: "Giúp team nhìn thấy hệ thống đang khỏe hay đang có vấn đề.",
+                warning: "Không có alarm thì monitoring chỉ là nhật ký để đọc sau khi sự cố đã cháy xong.",
+                example: "CloudWatch alarm khi EC2 CPU > 80%, CloudTrail kiểm tra ai sửa Security Group.",
+                log: "CloudWatch trả lời: hệ thống đang ra sao. CloudTrail trả lời: ai đã làm gì.",
+                nodes: [
+                    ["App / AWS", "Emit logs & metrics", 90, 170, "green"],
+                    ["CloudWatch", "Metrics / Logs", 310, 120, "aws"],
+                    ["Alarm", "Notify team", 560, 120, "red"],
+                    ["CloudTrail", "API audit", 310, 250, "purple"],
+                    ["Security Review", "Who did what", 560, 250, "cyan"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [0, 3, false], [3, 4, false]]
+            },
+            {
+                key: "lambda",
+                short: "LMD",
+                name: "Lambda",
+                group: "Serverless",
+                summary: "Lambda chạy function theo event. Team không quản lý server, AWS tự scale runtime theo số lượng event/request.",
+                tags: ["Serverless", "Event-driven", "Function"],
+                useCases: [
+                    "Xử lý ảnh sau khi upload S3.",
+                    "Cron job ngắn qua EventBridge.",
+                    "Xử lý message từ SQS.",
+                    "API nhỏ qua API Gateway."
+                ],
+                strength: "Không cần quản lý server, scale tự động, trả tiền theo request/thời gian chạy.",
+                warning: "Có cold start, timeout, giới hạn runtime và cần observability tốt.",
+                example: "S3 upload ảnh món ăn -> Lambda resize -> lưu ảnh resized lại S3.",
+                log: "Lambda rất hợp việc nhỏ, rõ trigger, chạy ngắn. Đừng nhét nguyên monolith vào một function rồi gọi đó là serverless.",
+                nodes: [
+                    ["Event", "S3 / API / SQS", 80, 170, "blue"],
+                    ["Lambda", "Run function", 310, 170, "aws"],
+                    ["S3", "Output file", 550, 95, "green"],
+                    ["DynamoDB", "Save metadata", 550, 245, "purple"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [1, 3, false]]
+            },
+            {
+                key: "dynamodb",
+                short: "DDB",
+                name: "DynamoDB",
+                group: "NoSQL Database",
+                summary: "DynamoDB là NoSQL key-value/document database managed, phù hợp workload cần scale ngang lớn và truy vấn theo key rõ ràng.",
+                tags: ["NoSQL", "Key-value", "High scale"],
+                useCases: [
+                    "Lưu session, user preference, shopping cart.",
+                    "Workload đọc/ghi lớn theo partition key.",
+                    "Serverless app kết hợp Lambda.",
+                    "Dữ liệu có access pattern rõ và ít cần join."
+                ],
+                strength: "Scale rất tốt, managed gần như toàn phần, latency thấp nếu thiết kế key đúng.",
+                warning: "Thiết kế partition key sai sẽ tạo hot partition. Không phù hợp query quan hệ phức tạp kiểu SQL.",
+                example: "Lambda API lưu user preference theo partition key user_id.",
+                log: "DynamoDB nhanh khi bạn biết mình sẽ query gì. Nó không thích câu: để sau query sao cũng được.",
+                nodes: [
+                    ["API", "Request", 80, 170, "blue"],
+                    ["Lambda / App", "Business logic", 300, 170, "green"],
+                    ["DynamoDB", "Partition key", 530, 170, "aws"],
+                    ["Streams", "Change event", 700, 170, "purple"]
+                ],
+                flows: [[0, 1, true], [1, 2, true], [2, 3, false]]
+            }
+        ];
+
+        const tabs = document.getElementById("tabs");
+        const serviceMark = document.getElementById("serviceMark");
+        const serviceName = document.getElementById("serviceName");
+        const serviceSummary = document.getElementById("serviceSummary");
+        const pillRow = document.getElementById("pillRow");
+        const useCases = document.getElementById("useCases");
+        const strength = document.getElementById("strength");
+        const warning = document.getElementById("warning");
+        const example = document.getElementById("example");
+        const serviceLog = document.getElementById("serviceLog");
+        const diagramTitle = document.getElementById("diagramTitle");
+        const diagramLayer = document.getElementById("diagramLayer");
+        const serviceStatus = document.getElementById("serviceStatus");
+        const diagramSvg = document.getElementById("diagramSvg");
+        const diagramViewport = document.getElementById("diagramViewport");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const zoomInBtn = document.getElementById("zoomInBtn");
+        const zoomOutBtn = document.getElementById("zoomOutBtn");
+        const zoomResetBtn = document.getElementById("zoomResetBtn");
+        let zoom = 1;
+        const nodeWidth = 126;
+        const nodeHeight = 88;
+
+        function diagramX(x) {
+            return Math.round(34 + x * 1.16);
+        }
+
+        function serviceIcon(key) {
+            const icons = {
+                overview: "fa-cloud",
+                ec2: "fa-server",
+                s3: "fa-box-archive",
+                vpc: "fa-network-wired",
+                iam: "fa-user-shield",
+                rds: "fa-database",
+                alb: "fa-scale-balanced",
+                cloudwatch: "fa-chart-line",
+                lambda: "fa-bolt",
+                dynamodb: "fa-table"
+            };
+            return icons[key] || "fa-cloud";
+        }
+
+        function nodeIconClass(title, tone) {
+            const normalized = title.toLowerCase();
+            if (normalized.includes("user") || normalized.includes("client")) return "fa-user";
+            if (normalized.includes("internet") || normalized.includes("globe")) return "fa-globe";
+            if (normalized.includes("alb") || normalized.includes("load")) return "fa-scale-balanced";
+            if (normalized.includes("ec2") || normalized.includes("target") || normalized.includes("server")) return "fa-server";
+            if (normalized.includes("s3") || normalized.includes("bucket")) return "fa-box-archive";
+            if (normalized.includes("rds") || normalized.includes("db") || normalized.includes("data")) return "fa-database";
+            if (normalized.includes("iam") || normalized.includes("policy") || normalized.includes("role")) return "fa-user-shield";
+            if (normalized.includes("lambda")) return "fa-bolt";
+            if (normalized.includes("dynamo")) return "fa-table";
+            if (normalized.includes("cloudwatch")) return "fa-chart-line";
+            if (normalized.includes("cloudtrail")) return "fa-clipboard-list";
+            if (normalized.includes("cloudfront") || normalized.includes("edge") || normalized.includes("cdn")) return "fa-cloud-arrow-down";
+            if (normalized.includes("vpc") || normalized.includes("subnet") || normalized.includes("nat") || normalized.includes("network")) return "fa-network-wired";
+            if (normalized.includes("alarm")) return "fa-bell";
+            if (normalized.includes("metrics")) return "fa-gauge-high";
+            if (normalized.includes("event")) return "fa-bolt";
+            if (normalized.includes("api")) return "fa-code";
+            if (normalized.includes("repo")) return "fa-box";
+            if (tone === "green") return "fa-server";
+            if (tone === "purple") return "fa-database";
+            if (tone === "blue") return "fa-globe";
+            if (tone === "aws") return "fa-cloud";
+            return "fa-cube";
+        }
+
+        function createTabs() {
+            tabs.innerHTML = "";
+            services.forEach((service, index) => {
+                const button = document.createElement("button");
+                button.className = "tab";
+                button.type = "button";
+                button.dataset.key = service.key;
+                button.innerHTML = `
+                    <span class="tab-icon"><i class="fa-solid ${serviceIcon(service.key)}" aria-hidden="true"></i></span>
+                    <span>
+                        <span class="tab-title">${service.name}</span>
+                        <span class="tab-sub">${service.group}</span>
+                    </span>
+                `;
+                button.addEventListener("click", () => renderService(index));
+                tabs.appendChild(button);
+            });
+        }
+
+        function nodeTemplate(node) {
+            const [title, sub, x, y, tone] = node;
+            const nodeX = diagramX(x);
+            const iconClass = nodeIconClass(title, tone);
+            return `
+                <g class="node ${tone}">
+                    <rect x="${nodeX}" y="${y - nodeHeight / 2}" width="${nodeWidth}" height="${nodeHeight}"></rect>
+                    <rect class="icon-bg" x="${nodeX + 11}" y="${y - 31}" width="34" height="28"></rect>
+                    <foreignObject x="${nodeX + 11}" y="${y - 31}" width="34" height="28">
+                        <div class="node-icon-wrap" xmlns="http://www.w3.org/1999/xhtml">
+                            <i class="fa-solid ${iconClass}" aria-hidden="true"></i>
+                        </div>
+                    </foreignObject>
+                    <text class="title" x="${nodeX + 80}" y="${y - 10}">${title}</text>
+                    <text class="sub" x="${nodeX + 80}" y="${y + 17}">${sub}</text>
+                </g>
+            `;
+        }
+
+        function flowTemplate(service, flow) {
+            const [fromIndex, toIndex, hot] = flow;
+            const from = service.nodes[fromIndex];
+            const to = service.nodes[toIndex];
+            const x1 = diagramX(from[2]) + nodeWidth;
+            const y1 = from[3];
+            const x2 = diagramX(to[2]);
+            const y2 = to[3];
+            const mid = Math.round((x1 + x2) / 2);
+            return `<path class="flow ${hot ? "hot" : ""}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}"></path>`;
+        }
+
+        function renderDiagram(service) {
+            const flows = service.flows.map(flow => flowTemplate(service, flow)).join("");
+            const nodes = service.nodes.map(nodeTemplate).join("");
+            diagramLayer.innerHTML = `${flows}${nodes}`;
+        }
+
+        function renderService(index) {
+            const service = services[index];
+
+            document.querySelectorAll(".tab").forEach(tab => {
+                tab.classList.toggle("active", tab.dataset.key === service.key);
+            });
+
+            serviceMark.textContent = service.short;
+            serviceName.textContent = service.name;
+            serviceSummary.textContent = service.summary;
+            diagramTitle.textContent = `${service.name} flow`;
+            serviceStatus.textContent = service.group;
+
+            pillRow.innerHTML = service.tags.map(tag => `<span class="pill">${tag}</span>`).join("");
+            useCases.innerHTML = service.useCases.map(item => `<li>${item}</li>`).join("");
+            strength.textContent = service.strength;
+            warning.textContent = service.warning;
+            example.textContent = service.example;
+            serviceLog.innerHTML = `<span>${service.short}</span> ${service.log}`;
+
+            renderDiagram(service);
+            resetZoom(false);
+        }
+
+        function applyZoom() {
+            diagramSvg.style.setProperty("--diagram-width", `${zoom * 100}%`);
+            diagramSvg.style.setProperty("--diagram-min-width", `${Math.round(980 * zoom)}px`);
+            diagramSvg.style.setProperty("--diagram-min-height", `${Math.round(500 * zoom)}px`);
+            zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+            zoomOutBtn.disabled = zoom <= 0.75;
+            zoomInBtn.disabled = zoom >= 1.8;
+        }
+
+        function resetZoom(keepScroll = true) {
+            zoom = 1;
+            applyZoom();
+            if (!keepScroll) {
+                diagramViewport.scrollLeft = 0;
+                diagramViewport.scrollTop = 0;
+            }
+        }
+
+        zoomInBtn.addEventListener("click", () => {
+            zoom = Math.min(1.8, Number((zoom + 0.15).toFixed(2)));
+            applyZoom();
+        });
+
+        zoomOutBtn.addEventListener("click", () => {
+            zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
+            applyZoom();
+        });
+
+        zoomResetBtn.addEventListener("click", () => resetZoom());
+
+        createTabs();
+        applyZoom();
+        renderService(0);
+    </script>
+</body>
+</html>
