@@ -46,6 +46,8 @@ Nên đọc khi cần ôn: distributed tracing, circuit breaker, saga pattern, m
 - `payment/test_momo_request.md`: request/response mẫu để test MoMo sandbox bằng Postman hoặc cURL, gồm create payment, response success/error và IPN mẫu.
 - `payment/glossary.md`: bảng giải thích thuật ngữ payment gateway như IPN, callback server-to-server, redirectUrl, signature, secure hash, idempotency và reconcile.
 - `payment/compare-gateways.md`: bảng so sánh MoMo, VNPAY, ZaloPay về config, request/response, callback/IPN và gợi ý thiết kế class `PaymentGateway`.
+- `payment/design-class.md`: tài liệu thiết kế class cho tính năng payment nhiều cổng, gồm config từng gateway, cấu trúc thư mục, class/function và flow triển khai.
+- `payment/design-class.html`: demo mô phỏng quan hệ giữa các class payment theo layer: presentation, application, domain và infrastructure adapters.
 - `payment/momo/doc.md`: tài liệu riêng cho tích hợp MoMo, nhấn mạnh luồng `create payment`, `payUrl`, `redirectUrl`, `ipnUrl`, verify signature và cập nhật trạng thái DB.
 - `payment/momo/test_momo_request.md`: request/response mẫu cho MoMo sandbox trong thư mục MoMo.
 - `payment/momo/index.html`: màn hình mô phỏng 12 bước thanh toán MoMo, có flow user redirect, server-to-server IPN, check DB và cập nhật `SUCCESS/FAILED`.
