@@ -44,9 +44,17 @@ Nên đọc khi cần ôn: distributed tracing, circuit breaker, saga pattern, m
 
 - `payment/doc.md`: hướng dẫn chọn phương án tích hợp MoMo cho website và cấu hình Spring Boot, gồm flow `captureWallet`, tạo chữ ký, create payment, IPN, DB status và checklist production.
 - `payment/test_momo_request.md`: request/response mẫu để test MoMo sandbox bằng Postman hoặc cURL, gồm create payment, response success/error và IPN mẫu.
+- `payment/glossary.md`: bảng giải thích thuật ngữ payment gateway như IPN, callback server-to-server, redirectUrl, signature, secure hash, idempotency và reconcile.
+- `payment/compare-gateways.md`: bảng so sánh MoMo, VNPAY, ZaloPay về config, request/response, callback/IPN và gợi ý thiết kế class `PaymentGateway`.
 - `payment/momo/doc.md`: tài liệu riêng cho tích hợp MoMo, nhấn mạnh luồng `create payment`, `payUrl`, `redirectUrl`, `ipnUrl`, verify signature và cập nhật trạng thái DB.
 - `payment/momo/test_momo_request.md`: request/response mẫu cho MoMo sandbox trong thư mục MoMo.
 - `payment/momo/index.html`: màn hình mô phỏng 12 bước thanh toán MoMo, có flow user redirect, server-to-server IPN, check DB và cập nhật `SUCCESS/FAILED`.
+- `payment/vnpay/doc.md`: tài liệu tích hợp VNPAY cho Spring Boot, gồm build `paymentUrl`, `vnp_SecureHash`, `vnp_ReturnUrl`, IPN, QueryDR và checklist production.
+- `payment/vnpay/test_vnpay_request.md`: request/response mẫu để test VNPAY sandbox, gồm params tạo URL, ReturnUrl, IPN và QueryDR mẫu.
+- `payment/vnpay/index.html`: màn hình mô phỏng 13 bước thanh toán VNPAY theo layout chuẩn 3 hàng, có flow build URL, redirect, IPN, verify hash và cập nhật `SUCCESS/FAILED`.
+- `payment/zalopay/doc.md`: tài liệu tích hợp ZaloPay cho Spring Boot, gồm `/v2/create`, `order_url`, `callback_url`, `key1/key2`, query order và checklist production.
+- `payment/zalopay/test_zalopay_request.md`: request/response mẫu để test ZaloPay sandbox, gồm create order, callback và query order.
+- `payment/zalopay/index.html`: màn hình mô phỏng 14 bước thanh toán ZaloPay theo layout chuẩn 3 hàng, có flow create order, redirect, callback, verify mac và cập nhật `SUCCESS/FAILED`.
 
 Nên đọc khi cần ôn: payment gateway, MoMo, redirectUrl, ipnUrl, HMAC SHA256, idempotency và xử lý trạng thái thanh toán.
 
