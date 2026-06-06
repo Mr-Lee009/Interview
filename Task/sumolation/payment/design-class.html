@@ -17,7 +17,6 @@
             --orange: #d97706;
             --purple: #7c3aed;
             --pink: #be185d;
-            --slate: #475467;
             --dark: #111827;
         }
 
@@ -32,9 +31,17 @@
         }
 
         .page {
-            width: min(1500px, calc(100% - 32px));
+            width: min(1640px, calc(100% - 32px));
             margin: 0 auto;
-            padding: 18px 0;
+            padding: 18px 0 28px;
+        }
+
+        header,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
         }
 
         header {
@@ -43,19 +50,14 @@
             gap: 14px;
             align-items: end;
             margin-bottom: 14px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 8px;
             padding: 16px;
-            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
         }
 
-        h1, h2, p { margin: 0; }
+        h1, h2, h3, p { margin: 0; }
 
         h1 {
             font-size: clamp(28px, 4vw, 44px);
             line-height: 1.08;
-            letter-spacing: 0;
         }
 
         .subtitle {
@@ -76,22 +78,56 @@
             white-space: nowrap;
         }
 
+        .legend {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 9px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            color: #475467;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 0;
+            border-top: 2px solid #98a2b3;
+            display: inline-block;
+        }
+
+        .legend-line.call { border-top-color: var(--blue); }
+        .legend-line.data { border-top-color: var(--green); }
+        .legend-line.dependency {
+            border-top-color: var(--purple);
+            border-top-style: dashed;
+        }
+        .legend-line.callback {
+            border-top-color: var(--orange);
+            border-top-style: dashed;
+        }
+
         .layout {
             display: grid;
-            grid-template-columns: minmax(0, 4fr) minmax(270px, 1fr);
+            grid-template-columns: minmax(0, 4fr) minmax(300px, 1fr);
             gap: 14px;
             align-items: start;
             margin-bottom: 14px;
         }
 
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        .diagram-card {
+            overflow: hidden;
         }
-
-        .diagram-card { overflow: hidden; }
 
         .toolbar {
             padding: 12px 14px;
@@ -103,7 +139,9 @@
             align-items: center;
         }
 
-        .toolbar-title { font-weight: 900; }
+        .toolbar-title {
+            font-weight: 900;
+        }
 
         .actions {
             display: flex;
@@ -131,57 +169,11 @@
             color: #3730a3;
         }
 
-        .legend {
-            grid-column: 1 / -1;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 0;
-        }
-
-        .legend-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            min-height: 28px;
-            padding: 0 9px;
-            border: 1px solid #e4e7ec;
-            border-radius: 999px;
-            color: #475467;
-            background: #ffffff;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .legend-line {
-            width: 30px;
-            height: 0;
-            border-top: 2px solid #98a2b3;
-            display: inline-block;
-        }
-
-        .legend-line.call { border-top-color: var(--blue); }
-        .legend-line.dependency {
-            border-top-color: var(--purple);
-            border-top-style: dashed;
-        }
-        .legend-line.data { border-top-color: var(--green); }
-
-        .legend-icon {
-            width: 22px;
-            height: 22px;
-            border: 1px solid #d0d5dd;
-            border-radius: 6px;
-            display: inline-grid;
-            place-items: center;
-            font-size: 11px;
-            background: #f8fafc;
-        }
-
         .viewport {
+            position: relative;
             width: 100%;
-            height: min(58vh, 590px);
-            min-height: 460px;
+            height: min(68vh, 760px);
+            min-height: 560px;
             overflow: auto;
             scrollbar-gutter: stable both-edges;
             background:
@@ -193,9 +185,9 @@
 
         .diagram {
             width: var(--diagram-width, 100%);
-            min-width: var(--diagram-min-width, 1420px);
-            min-height: var(--diagram-min-height, 760px);
-            aspect-ratio: 1420 / 760;
+            min-width: var(--diagram-min-width, 1700px);
+            min-height: var(--diagram-min-height, 980px);
+            aspect-ratio: 1700 / 980;
             display: block;
         }
 
@@ -206,16 +198,15 @@
         }
 
         .zone.presentation rect { fill: rgba(217, 119, 6, 0.045); stroke: rgba(217, 119, 6, 0.45); }
-        .zone.application rect { fill: rgba(37, 99, 235, 0.045); stroke: rgba(37, 99, 235, 0.45); }
-        .zone.domain rect { fill: rgba(22, 163, 74, 0.045); stroke: rgba(22, 163, 74, 0.45); }
-        .zone.infrastructure rect { fill: rgba(124, 58, 237, 0.045); stroke: rgba(124, 58, 237, 0.45); }
+        .zone.service rect { fill: rgba(37, 99, 235, 0.045); stroke: rgba(37, 99, 235, 0.45); }
+        .zone.persistence rect { fill: rgba(22, 163, 74, 0.045); stroke: rgba(22, 163, 74, 0.45); }
+        .zone.gateway rect { fill: rgba(124, 58, 237, 0.045); stroke: rgba(124, 58, 237, 0.45); }
 
         .zone text {
             text-anchor: start;
             font-weight: 900;
             font-size: 16px;
             fill: #1f2937;
-            letter-spacing: 0;
         }
 
         .zone .zone-sub {
@@ -226,19 +217,31 @@
 
         .flow {
             stroke: #98a2b3;
-            stroke-width: 2.3;
+            stroke-width: 2.15;
             fill: none;
             marker-end: url(#arrow);
             stroke-linecap: round;
         }
 
         .flow.call { stroke: var(--blue); }
+        .flow.data { stroke: var(--green); }
         .flow.dependency {
             stroke: var(--purple);
             stroke-dasharray: 7 8;
             animation: dash 1.3s linear infinite;
         }
-        .flow.data { stroke: var(--green); }
+        .flow.callback {
+            stroke: var(--orange);
+            stroke-dasharray: 6 8;
+            animation: dash 1.3s linear infinite;
+        }
+
+        .flow-hit {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 18;
+            cursor: pointer;
+        }
 
         @keyframes dash {
             to { stroke-dashoffset: -36; }
@@ -254,7 +257,6 @@
 
         .node text {
             text-anchor: middle;
-            letter-spacing: 0;
         }
 
         .node .title {
@@ -285,12 +287,46 @@
         }
 
         .node.presentation rect { stroke: var(--orange); }
-        .node.application rect { stroke: var(--blue); }
-        .node.domain rect { stroke: var(--green); }
-        .node.infrastructure rect { stroke: var(--purple); }
-        .node.gateway rect { stroke: var(--pink); }
+        .node.service rect { stroke: var(--blue); }
+        .node.persistence rect { stroke: var(--green); }
+        .node.gateway rect { stroke: var(--purple); }
 
-        .card { padding: 14px; }
+        .tooltip {
+            position: absolute;
+            z-index: 10;
+            max-width: 300px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid #c7d2fe;
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .tooltip-body {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #475467;
+        }
+
+        .card {
+            padding: 14px;
+        }
 
         .card h2 {
             font-size: 18px;
@@ -300,7 +336,7 @@
         .steps {
             display: grid;
             gap: 7px;
-            max-height: min(58vh, 590px);
+            max-height: min(68vh, 760px);
             overflow: auto;
             padding-right: 2px;
         }
@@ -337,7 +373,9 @@
             margin-bottom: 2px;
         }
 
-        .step span { font-size: 13px; }
+        .step span {
+            font-size: 13px;
+        }
 
         .step.active {
             border-color: #c7d2fe;
@@ -386,6 +424,68 @@
             font-weight: 900;
         }
 
+        .callback-layout {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .callback-node {
+            position: relative;
+            padding: 12px 12px 14px;
+            border: 1px solid #d9e2ef;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            min-height: 110px;
+        }
+
+        .callback-node h3 {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .callback-node p {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #667085;
+        }
+
+        .callback-node::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: -19px;
+            width: 18px;
+            border-top: 2px dashed #cbd5e1;
+        }
+
+        .callback-node::before {
+            content: "";
+            position: absolute;
+            top: calc(50% - 4px);
+            right: -21px;
+            border-left: 7px solid #cbd5e1;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        .callback-node:last-child::after,
+        .callback-node:last-child::before {
+            display: none;
+        }
+
+        @media (max-width: 1260px) {
+            .callback-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .callback-node::after,
+            .callback-node::before {
+                display: none;
+            }
+        }
+
         @media (max-width: 1120px) {
             header,
             .layout,
@@ -394,11 +494,13 @@
             }
 
             .viewport {
-                height: 540px;
+                height: 620px;
                 min-height: 420px;
             }
 
-            .steps { max-height: none; }
+            .steps {
+                max-height: none;
+            }
         }
     </style>
 </head>
@@ -408,25 +510,25 @@
             <div>
                 <h1>Payment Class Relationship</h1>
                 <p class="subtitle">
-                    Mô phỏng quan hệ giữa các class trong thiết kế payment nhiều cổng:
-                    Controller gọi Service, Service chọn Gateway adapter, adapter làm việc với signer/client/config/repository.
+                    Bản này bám đúng tài liệu rút gọn: chỉ có một <code>PaymentController</code>,
+                    một <code>PaymentService</code>, một <code>PaymentGatewayResolver</code>,
+                    hai repository và các gateway adapter. Ngoài sơ đồ tổng thể còn có thêm một sơ đồ riêng cho callback flow.
                 </p>
             </div>
-            <div class="badge">PaymentGateway / Adapter / Repository</div>
+            <div class="badge">1 Controller / 1 Service / Resolver</div>
 
             <div class="legend">
                 <span class="legend-item"><span class="legend-line call"></span>Luồng gọi chính</span>
-                <span class="legend-item"><span class="legend-line dependency"></span>Quan hệ phụ thuộc/interface</span>
-                <span class="legend-item"><span class="legend-line data"></span>Đọc/ghi dữ liệu DB/config</span>
-                <span class="legend-item"><span class="legend-icon"><i class="fa-solid fa-layer-group"></i></span>Khung nét đứt = layer/package</span>
-                <span class="legend-item"><span class="legend-icon"><i class="fa-solid fa-plug"></i></span>Adapter riêng cho từng gateway</span>
+                <span class="legend-item"><span class="legend-line data"></span>Đọc ghi DB / config</span>
+                <span class="legend-item"><span class="legend-line dependency"></span>Resolver / interface / adapter</span>
+                <span class="legend-item"><span class="legend-line callback"></span>Callback quay về backend</span>
             </div>
         </header>
 
         <section class="layout">
             <section class="panel diagram-card">
                 <div class="toolbar">
-                    <div class="toolbar-title">Class relationship diagram</div>
+                    <div class="toolbar-title">Sơ đồ tổng thể</div>
                     <div class="actions">
                         <button class="primary" id="playBtn" type="button"><i class="fa-solid fa-play"></i> Play</button>
                         <button id="prevBtn" type="button">Prev</button>
@@ -439,7 +541,7 @@
                 </div>
 
                 <div class="viewport" id="viewport">
-                    <svg class="diagram" id="diagram" viewBox="0 0 1420 760" role="img" aria-label="Payment class relationship diagram">
+                    <svg class="diagram" id="diagram" viewBox="0 0 1700 980" role="img" aria-label="Payment class relationship diagram">
                         <defs>
                             <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#98a2b3"></path>
@@ -447,23 +549,54 @@
                         </defs>
                         <g id="zoneLayer"></g>
                         <g id="flowLayer"></g>
+                        <g id="flowHitLayer"></g>
                         <g id="nodeLayer"></g>
                         <circle id="packet" cx="80" cy="100" r="10" fill="#4f46e5" opacity="0"></circle>
                     </svg>
+                    <div class="tooltip" id="flowTooltip">
+                        <div class="tooltip-title" id="tooltipTitle"></div>
+                        <div class="tooltip-body" id="tooltipBody"></div>
+                    </div>
                 </div>
             </section>
 
-            <section class="panel card steps-card">
-                <h2>12 bước quan hệ</h2>
+            <section class="panel card">
+                <h2>10 bước xử lý</h2>
                 <div class="steps" id="steps"></div>
             </section>
         </section>
 
+        <section class="panel card" style="margin-bottom: 14px;">
+            <h2>Sơ đồ riêng cho Callback Flow</h2>
+            <div class="callback-layout">
+                <div class="callback-node">
+                    <h3>1. Provider callback</h3>
+                    <p>MoMo, VNPAY hoặc ZaloPay gửi callback/IPN về đúng endpoint <code>/api/payments/callback/{provider}</code>.</p>
+                </div>
+                <div class="callback-node">
+                    <h3>2. PaymentController</h3>
+                    <p>Controller duy nhất nhận <code>headers</code>, <code>query params</code>, <code>body</code> và chuyển cho service.</p>
+                </div>
+                <div class="callback-node">
+                    <h3>3. PaymentService</h3>
+                    <p>Service xác định provider, đọc config, lấy adapter từ resolver và điều phối toàn bộ bước verify.</p>
+                </div>
+                <div class="callback-node">
+                    <h3>4. Gateway adapter</h3>
+                    <p>Adapter parse payload, verify chữ ký, chuẩn hóa trạng thái và trả về kết quả callback chung.</p>
+                </div>
+                <div class="callback-node">
+                    <h3>5. Update DB</h3>
+                    <p>PaymentService đối chiếu amount, tìm transaction theo <code>provider + gatewayTxnRef</code> rồi cập nhật <code>SUCCESS</code> hoặc <code>FAILED</code>.</p>
+                </div>
+            </div>
+        </section>
+
         <footer class="panel card footer-card">
-            <h2>Log / rule thiết kế</h2>
+            <h2>Log / design rule</h2>
             <div class="footer-grid">
                 <div class="note">
-                    <span>Rule:</span> Business chỉ gọi `PaymentService`. Logic riêng từng provider nằm trong adapter. Secret/signature không rò ra Controller hoặc Frontend.
+                    <span>Rule:</span> <code>PaymentService</code> trực tiếp đọc <code>PaymentGatewayConfigRepository</code>, chọn adapter qua <code>PaymentGatewayResolver</code>, và xử lý callback cập nhật trạng thái DB. Không cần tách thêm service nhỏ nếu chưa tái sử dụng được.
                 </div>
                 <div class="log-box" id="logBox">
                     <span>Step 1:</span> Frontend gọi PaymentController để tạo thanh toán.
@@ -473,64 +606,62 @@
     </main>
 
     <script>
-        const canvasWidth = 1420;
-        const canvasHeight = 760;
+        const canvasWidth = 1700;
+        const canvasHeight = 980;
+        const nodeWidth = 164;
+        const nodeHeight = 86;
+
         const zones = [
-            { key: "presentation", title: "Presentation layer", sub: "HTTP API nhận request từ frontend/gateway", x: 24, y: 28, width: 330, height: 690, type: "presentation" },
-            { key: "application", title: "Application layer", sub: "Orchestration, interface và DTO chung", x: 390, y: 28, width: 430, height: 690, type: "application" },
-            { key: "domain", title: "Domain + DB", sub: "Transaction, config và repository", x: 860, y: 28, width: 360, height: 300, type: "domain" },
-            { key: "infrastructure", title: "Infrastructure adapters", sub: "MoMo, VNPAY, ZaloPay implementation", x: 860, y: 372, width: 500, height: 346, type: "infrastructure" }
+            { key: "presentation", title: "Presentation", sub: "1 RestController duy nhất", x: 24, y: 28, width: 350, height: 900, type: "presentation" },
+            { key: "service", title: "Service layer", sub: "PaymentService + resolver", x: 420, y: 28, width: 450, height: 900, type: "service" },
+            { key: "persistence", title: "Persistence", sub: "Transaction + Gateway config", x: 920, y: 28, width: 340, height: 330, type: "persistence" },
+            { key: "gateway", title: "Gateway adapters", sub: "Interface + 3 implementation + provider APIs", x: 920, y: 400, width: 740, height: 528, type: "gateway" }
         ];
 
         const nodes = [
-            { key: "frontend", title: "Frontend", sub: "User checkout", x: 60, y: 110, type: "presentation", icon: "fa-display" },
-            { key: "paymentController", title: "PaymentController", sub: "POST /payments/create", x: 70, y: 245, type: "presentation", icon: "fa-route" },
-            { key: "callbackController", title: "CallbackController", sub: "IPN/callback", x: 70, y: 390, type: "presentation", icon: "fa-envelope-circle-check" },
-            { key: "returnController", title: "ReturnController", sub: "User return", x: 70, y: 535, type: "presentation", icon: "fa-arrow-right-to-bracket" },
+            { key: "frontend", title: "Frontend", sub: "Checkout UI", x: 90, y: 135, type: "presentation", icon: "fa-display" },
+            { key: "controller", title: "PaymentController", sub: "Tất cả API payment", x: 90, y: 380, type: "presentation", icon: "fa-route" },
 
-            { key: "paymentService", title: "PaymentService", sub: "Orchestrate flow", x: 460, y: 180, type: "application", icon: "fa-gears" },
-            { key: "factory", title: "GatewayFactory", sub: "Select adapter", x: 615, y: 315, type: "application", icon: "fa-sitemap" },
-            { key: "gatewayInterface", title: "PaymentGateway", sub: "Interface contract", x: 460, y: 455, type: "application", icon: "fa-plug" },
-            { key: "configService", title: "ConfigService", sub: "Runtime config", x: 615, y: 585, type: "application", icon: "fa-sliders" },
-            { key: "secretService", title: "SecretService", sub: "Keys/secrets", x: 440, y: 585, type: "application", icon: "fa-key" },
+            { key: "service", title: "PaymentService", sub: "Điều phối toàn bộ flow", x: 505, y: 170, type: "service", icon: "fa-gears" },
+            { key: "resolver", title: "PaymentGatewayResolver", sub: "Chọn adapter", x: 650, y: 400, type: "service", icon: "fa-sitemap" },
+            { key: "gatewayInterface", title: "PaymentGateway", sub: "Gateway contract", x: 475, y: 645, type: "service", icon: "fa-plug" },
 
-            { key: "transaction", title: "PaymentTransaction", sub: "Entity status", x: 910, y: 115, type: "domain", icon: "fa-receipt" },
-            { key: "transactionRepo", title: "TransactionRepo", sub: "Read/write payment", x: 1060, y: 235, type: "domain", icon: "fa-database" },
-            { key: "gatewayConfig", title: "GatewayConfig", sub: "DB config", x: 910, y: 235, type: "domain", icon: "fa-table" },
+            { key: "txRepo", title: "PaymentTransactionRepo", sub: "Lưu trạng thái payment", x: 1085, y: 155, type: "persistence", icon: "fa-database" },
+            { key: "configRepo", title: "PaymentGatewayConfigRepo", sub: "Đọc config gateway", x: 1085, y: 285, type: "persistence", icon: "fa-table" },
 
-            { key: "momo", title: "MomoGateway", sub: "payUrl + IPN", x: 895, y: 470, type: "gateway", icon: "fa-wallet" },
-            { key: "vnpay", title: "VnpayGateway", sub: "paymentUrl + IPN", x: 1060, y: 470, type: "gateway", icon: "fa-building-columns" },
-            { key: "zalopay", title: "ZaloPayGateway", sub: "order_url + callback", x: 1225, y: 470, type: "gateway", icon: "fa-mobile-screen" },
-            { key: "signer", title: "Signer", sub: "HMAC/verify", x: 980, y: 625, type: "infrastructure", icon: "fa-shield-halved" },
-            { key: "client", title: "HttpClient", sub: "Call provider API", x: 1165, y: 625, type: "infrastructure", icon: "fa-cloud-arrow-up" }
+            { key: "momo", title: "MomoPaymentGateway", sub: "Adapter MoMo", x: 1000, y: 585, type: "gateway", icon: "fa-wallet" },
+            { key: "vnpay", title: "VnpayPaymentGateway", sub: "Adapter VNPAY", x: 1250, y: 585, type: "gateway", icon: "fa-building-columns" },
+            { key: "zalopay", title: "ZaloPayPaymentGateway", sub: "Adapter ZaloPay", x: 1500, y: 585, type: "gateway", icon: "fa-mobile-screen" },
+            { key: "providerApi", title: "Provider APIs", sub: "Create / Query / Callback", x: 1250, y: 815, type: "gateway", icon: "fa-cloud-arrow-up" }
         ];
 
         const steps = [
-            { title: "Frontend create payment", text: "Frontend gọi PaymentController để tạo thanh toán.", from: "frontend", to: "paymentController", line: "call" },
-            { title: "Controller gọi Service", text: "PaymentController map request thành CreatePaymentCommand rồi gọi PaymentService.", from: "paymentController", to: "paymentService", line: "call" },
-            { title: "Service ghi PENDING", text: "PaymentService tạo PaymentTransaction PENDING qua repository.", from: "paymentService", to: "transactionRepo", line: "data" },
-            { title: "Service chọn adapter", text: "PaymentService gọi GatewayFactory để lấy adapter theo provider.", from: "paymentService", to: "factory", line: "call" },
-            { title: "Factory phụ thuộc interface", text: "GatewayFactory quản lý các implementation của PaymentGateway.", from: "factory", to: "gatewayInterface", line: "dependency" },
-            { title: "Adapter implement interface", text: "MoMo/VNPAY/ZaloPay adapter cùng implement PaymentGateway.", from: "gatewayInterface", to: "momo", line: "dependency" },
-            { title: "Adapter đọc config", text: "Adapter lấy endpoint, returnUrl, callbackUrl từ ConfigService/DB.", from: "momo", to: "configService", line: "data" },
-            { title: "Adapter lấy secret", text: "Adapter lấy signing key/verify key từ SecretService.", from: "vnpay", to: "secretService", line: "data" },
-            { title: "Adapter ký request", text: "Adapter dùng Signer để tạo signature hoặc verify callback.", from: "zalopay", to: "signer", line: "call" },
-            { title: "Adapter gọi provider", text: "Adapter dùng HttpClient gọi API create/query của provider.", from: "momo", to: "client", line: "call" },
-            { title: "Callback/IPN", text: "Gateway gọi CallbackController, sau đó PaymentService verify và update DB.", from: "callbackController", to: "paymentService", line: "call" },
-            { title: "Return chỉ hiển thị", text: "ReturnController chỉ đọc trạng thái từ DB, không mark paid.", from: "returnController", to: "transactionRepo", line: "data" }
+            { title: "Frontend gọi controller", text: "Frontend gọi duy nhất PaymentController để tạo payment hoặc query trạng thái.", from: "frontend", to: "controller", line: "call" },
+            { title: "Controller gọi service", text: "PaymentController map request và chuyển toàn bộ xử lý cho PaymentService.", from: "controller", to: "service", line: "call" },
+            { title: "Service tạo PENDING", text: "PaymentService lưu giao dịch PENDING vào PaymentTransactionRepository.", from: "service", to: "txRepo", line: "data" },
+            { title: "Service đọc config", text: "PaymentService tự đọc config gateway từ PaymentGatewayConfigRepository.", from: "service", to: "configRepo", line: "data" },
+            { title: "Service chọn adapter", text: "PaymentService gọi PaymentGatewayResolver để lấy adapter đúng theo provider.", from: "service", to: "resolver", line: "call" },
+            { title: "Resolver dùng interface", text: "Resolver quản lý các implementation của PaymentGateway qua contract chung.", from: "resolver", to: "gatewayInterface", line: "dependency" },
+            { title: "Interface tới adapter", text: "PaymentGateway được implement bởi MoMo, VNPAY và ZaloPay adapter.", from: "gatewayInterface", to: "momo", line: "dependency" },
+            { title: "Adapter gọi provider", text: "Gateway adapter build request, sign request và gọi API của provider.", from: "momo", to: "providerApi", line: "call" },
+            { title: "Callback quay về controller", text: "Provider callback quay lại PaymentController, sau đó PaymentService verify và chuẩn hóa kết quả.", from: "providerApi", to: "controller", line: "callback" },
+            { title: "Cập nhật trạng thái cuối", text: "PaymentService cập nhật SUCCESS hoặc FAILED vào PaymentTransactionRepository.", from: "service", to: "txRepo", line: "data" }
         ];
 
-        const nodeWidth = 145;
-        const nodeHeight = 84;
         const zoneLayer = document.getElementById("zoneLayer");
         const nodeLayer = document.getElementById("nodeLayer");
         const flowLayer = document.getElementById("flowLayer");
+        const flowHitLayer = document.getElementById("flowHitLayer");
         const stepsEl = document.getElementById("steps");
         const packet = document.getElementById("packet");
         const diagram = document.getElementById("diagram");
         const viewport = document.getElementById("viewport");
         const zoomLabel = document.getElementById("zoomLabel");
         const logBox = document.getElementById("logBox");
+        const tooltip = document.getElementById("flowTooltip");
+        const tooltipTitle = document.getElementById("tooltipTitle");
+        const tooltipBody = document.getElementById("tooltipBody");
+
         let activeStep = 0;
         let zoom = 1;
         let playing = false;
@@ -541,6 +672,23 @@
 
         function center(node) {
             return { x: node.x + nodeWidth / 2, y: node.y };
+        }
+
+        function rectOf(node) {
+            return {
+                left: node.x,
+                top: node.y - nodeHeight / 2,
+                right: node.x + nodeWidth,
+                bottom: node.y + nodeHeight / 2
+            };
+        }
+
+        function edgePoint(node, direction) {
+            const c = center(node);
+            if (direction === "left") return { x: node.x, y: c.y };
+            if (direction === "right") return { x: node.x + nodeWidth, y: c.y };
+            if (direction === "top") return { x: c.x, y: node.y - nodeHeight / 2 };
+            return { x: c.x, y: node.y + nodeHeight / 2 };
         }
 
         function zoneTemplate(zone) {
@@ -563,26 +711,57 @@
                             <i class="fa-solid ${node.icon}" aria-hidden="true"></i>
                         </div>
                     </foreignObject>
-                    <text class="title" x="${node.x + 92}" y="${node.y - 10}">${node.title}</text>
-                    <text class="sub" x="${node.x + 92}" y="${node.y + 17}">${node.sub}</text>
+                    <text class="title" x="${node.x + 100}" y="${node.y - 10}">${node.title}</text>
+                    <text class="sub" x="${node.x + 100}" y="${node.y + 17}">${node.sub}</text>
                 </g>
             `;
         }
 
+        function routeFor(step) {
+            const fromNode = byKey(step.from);
+            const toNode = byKey(step.to);
+            const dx = toNode.x - fromNode.x;
+            const dy = toNode.y - fromNode.y;
+            const horizontal = Math.abs(dx) >= Math.abs(dy);
+
+            if (horizontal) {
+                const from = edgePoint(fromNode, dx >= 0 ? "right" : "left");
+                const to = edgePoint(toNode, dx >= 0 ? "left" : "right");
+                const offset = Math.max(70, Math.min(190, Math.abs(dx) * 0.3));
+                const c1x = from.x + (dx >= 0 ? offset : -offset);
+                const c2x = to.x - (dx >= 0 ? offset : -offset);
+                return {
+                    path: `M ${from.x} ${from.y} C ${c1x} ${from.y}, ${c2x} ${to.y}, ${to.x} ${to.y}`,
+                    mid: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
+                };
+            }
+
+            const from = edgePoint(fromNode, dy >= 0 ? "bottom" : "top");
+            const to = edgePoint(toNode, dy >= 0 ? "top" : "bottom");
+            const offset = Math.max(70, Math.min(170, Math.abs(dy) * 0.28));
+            const c1y = from.y + (dy >= 0 ? offset : -offset);
+            const c2y = to.y - (dy >= 0 ? offset : -offset);
+            return {
+                path: `M ${from.x} ${from.y} C ${from.x} ${c1y}, ${to.x} ${c2y}, ${to.x} ${to.y}`,
+                mid: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
+            };
+        }
+
         function flowPath(step, index) {
-            const from = center(byKey(step.from));
-            const to = center(byKey(step.to));
-            const midX = Math.round((from.x + to.x) / 2);
-            const path = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
-            return `<path id="flow-${index}" class="flow ${step.line}" d="${path}"></path>`;
+            return `<path id="flow-${index}" class="flow ${step.line}" d="${routeFor(step).path}"></path>`;
+        }
+
+        function flowHitPath(step, index) {
+            return `<path id="flow-hit-${index}" class="flow-hit" d="${routeFor(step).path}" data-index="${index}"></path>`;
         }
 
         function render() {
             zoneLayer.innerHTML = zones.map(zoneTemplate).join("");
             nodeLayer.innerHTML = nodes.map(nodeTemplate).join("");
             flowLayer.innerHTML = steps.map(flowPath).join("");
+            flowHitLayer.innerHTML = steps.map(flowHitPath).join("");
             stepsEl.innerHTML = steps.map((step, index) => `
-                <div class="step" id="step-${index}" data-index="${index}">
+                <div class="step" data-index="${index}">
                     <div class="step-number">${index + 1}</div>
                     <div>
                         <strong>${step.title}</strong>
@@ -594,19 +773,13 @@
             document.querySelectorAll(".step").forEach(item => {
                 item.addEventListener("click", () => setStep(Number(item.dataset.index)));
             });
-        }
 
-        function setStep(index) {
-            activeStep = Math.max(0, Math.min(steps.length - 1, index));
-            document.querySelectorAll(".step").forEach((item, itemIndex) => {
-                item.classList.toggle("active", itemIndex === activeStep);
+            document.querySelectorAll(".flow-hit").forEach(item => {
+                item.addEventListener("mouseenter", () => showTooltip(Number(item.dataset.index), false));
+                item.addEventListener("mousemove", () => showTooltip(Number(item.dataset.index), false));
+                item.addEventListener("mouseleave", hideTooltip);
+                item.addEventListener("click", () => setStep(Number(item.dataset.index)));
             });
-            document.querySelectorAll(".flow").forEach((flow, flowIndex) => {
-                flow.style.opacity = flowIndex <= activeStep ? "1" : "0.2";
-                flow.style.strokeWidth = flowIndex === activeStep ? "4" : "2.3";
-            });
-            logBox.innerHTML = `<span>Step ${activeStep + 1}:</span> ${steps[activeStep].title} - ${steps[activeStep].text}`;
-            movePacketTo(activeStep);
         }
 
         function movePacketTo(index) {
@@ -616,7 +789,91 @@
             packet.setAttribute("cx", target.x);
             packet.setAttribute("cy", target.y);
             packet.setAttribute("opacity", "1");
-            packet.setAttribute("fill", step.line === "data" ? "#16a34a" : step.line === "dependency" ? "#7c3aed" : "#4f46e5");
+            packet.setAttribute("fill",
+                step.line === "data" ? "#16a34a"
+                : step.line === "dependency" ? "#7c3aed"
+                : step.line === "callback" ? "#d97706"
+                : "#4f46e5"
+            );
+        }
+
+        function showTooltip(index, sticky) {
+            const step = steps[index];
+            const route = routeFor(step);
+            const targetNode = byKey(step.to);
+            const targetRect = rectOf(targetNode);
+
+            tooltipTitle.textContent = `Bước ${index + 1}: ${step.title}`;
+            tooltipBody.textContent = step.text;
+
+            const tooltipWidth = 300;
+            const tooltipHeight = 92;
+            const padding = 18;
+            const targetLeft = targetRect.left * zoom - viewport.scrollLeft;
+            const targetTop = targetRect.top * zoom - viewport.scrollTop;
+            const targetRight = targetRect.right * zoom - viewport.scrollLeft;
+            const targetBottom = targetRect.bottom * zoom - viewport.scrollTop;
+
+            const candidates = [
+                { left: route.mid.x * zoom - viewport.scrollLeft + 18, top: route.mid.y * zoom - viewport.scrollTop - tooltipHeight - 12 },
+                { left: targetRight + padding, top: targetTop + (targetBottom - targetTop) / 2 - tooltipHeight / 2 },
+                { left: targetLeft - tooltipWidth - padding, top: targetTop + (targetBottom - targetTop) / 2 - tooltipHeight / 2 },
+                { left: route.mid.x * zoom - viewport.scrollLeft + 18, top: targetBottom + padding },
+                { left: route.mid.x * zoom - viewport.scrollLeft - tooltipWidth - 18, top: route.mid.y * zoom - viewport.scrollTop - tooltipHeight - 12 }
+            ];
+
+            const viewportWidth = viewport.clientWidth;
+            const viewportHeight = viewport.clientHeight;
+
+            function overlapsTarget(pos) {
+                const right = pos.left + tooltipWidth;
+                const bottom = pos.top + tooltipHeight;
+                return !(right < targetLeft || pos.left > targetRight || bottom < targetTop || pos.top > targetBottom);
+            }
+
+            function clamp(pos) {
+                return {
+                    left: Math.max(12, Math.min(viewportWidth - tooltipWidth - 12, pos.left)),
+                    top: Math.max(12, Math.min(viewportHeight - tooltipHeight - 12, pos.top))
+                };
+            }
+
+            let chosen = null;
+            for (const pos of candidates) {
+                const clamped = clamp(pos);
+                if (!overlapsTarget(clamped)) {
+                    chosen = clamped;
+                    break;
+                }
+            }
+
+            if (!chosen) {
+                chosen = clamp({ left: 18, top: 18 });
+            }
+
+            tooltip.style.left = `${chosen.left}px`;
+            tooltip.style.top = `${chosen.top}px`;
+            tooltip.dataset.sticky = sticky ? "true" : "false";
+            tooltip.classList.add("visible");
+        }
+
+        function hideTooltip() {
+            if (tooltip.dataset.sticky === "true") return;
+            tooltip.classList.remove("visible");
+        }
+
+        function setStep(index) {
+            activeStep = Math.max(0, Math.min(steps.length - 1, index));
+            document.querySelectorAll(".step").forEach((item, itemIndex) => {
+                item.classList.toggle("active", itemIndex === activeStep);
+            });
+            document.querySelectorAll(".flow").forEach((flow, flowIndex) => {
+                flow.style.opacity = flowIndex <= activeStep ? "1" : "0.18";
+                flow.style.strokeWidth = flowIndex === activeStep ? "3.7" : "2.15";
+            });
+            logBox.innerHTML = `<span>Bước ${activeStep + 1}:</span> ${steps[activeStep].title} - ${steps[activeStep].text}`;
+            movePacketTo(activeStep);
+            showTooltip(activeStep, true);
         }
 
         function applyZoom() {
@@ -624,6 +881,7 @@
             diagram.style.setProperty("--diagram-min-width", `${Math.round(canvasWidth * zoom)}px`);
             diagram.style.setProperty("--diagram-min-height", `${Math.round(canvasHeight * zoom)}px`);
             zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+            showTooltip(activeStep, true);
         }
 
         async function play() {
@@ -642,9 +900,9 @@
         document.getElementById("resetBtn").addEventListener("click", () => {
             activeStep = 0;
             packet.setAttribute("opacity", "0");
-            setStep(0);
             viewport.scrollLeft = 0;
             viewport.scrollTop = 0;
+            setStep(0);
         });
         document.getElementById("zoomInBtn").addEventListener("click", () => {
             zoom = Math.min(1.8, Number((zoom + 0.15).toFixed(2)));
@@ -654,6 +912,7 @@
             zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
             applyZoom();
         });
+        viewport.addEventListener("scroll", () => showTooltip(activeStep, true));
 
         render();
         applyZoom();
