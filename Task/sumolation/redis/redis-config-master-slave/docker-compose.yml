@@ -1,0 +1,100 @@
+# Redis Master/Replica dùng RDB persistence.
+#
+# Chạy hệ thống:
+#   docker compose up -d
+#
+# Kiểm tra replication:
+#   docker exec -it redis-master redis-cli -a redis_password INFO replication
+#   docker exec -it redis-replica-1 redis-cli -a redis_password INFO replication
+#
+# Tạo snapshot RDB thủ công:
+#   docker exec -it redis-master redis-cli -a redis_password BGSAVE
+#
+# Ghi chú:
+# - File docker-compose.yml chỉ mô tả container, network, volume.
+# - Cấu hình Redis runtime được tách ra file ./config/*.conf để dễ đọc/dễ bảo trì.
+# - Đây là cấu hình học tập/demo. Production nên dùng Docker Secret/Kubernetes Secret
+#   thay vì để password plaintext trong file config.
+
+services:
+  redis-master:
+    image: redis:7.2-alpine
+    container_name: redis-master
+    restart: unless-stopped
+
+    # Port host:container.
+    # Ứng dụng local có thể kết nối master qua localhost:6379.
+    ports:
+      - "6379:6379"
+
+    volumes:
+      # Lưu dữ liệu Redis master ra host.
+      # File RDB dump.rdb sẽ nằm trong ./data/master.
+      - ./data/master:/data
+
+      # Mount file cấu hình Redis master vào container ở chế độ read-only.
+      - ./config/redis-master.conf:/etc/redis/redis.conf:ro
+
+    # Chạy Redis bằng file config riêng thay vì viết command dài trong compose.
+    command: ["redis-server", "/etc/redis/redis.conf"]
+
+    networks:
+      - redis-net
+
+  redis-replica-1:
+    image: redis:7.2-alpine
+    container_name: redis-replica-1
+    restart: unless-stopped
+
+    # Replica 1 expose ra host port 6380.
+    # Bình thường app chỉ ghi vào master; replica dùng để đọc hoặc dự phòng.
+    ports:
+      - "6380:6379"
+
+    volumes:
+      # Lưu dữ liệu replica 1 ra host.
+      - ./data/replica-1:/data
+
+      # Replica dùng chung config vì đều replicate từ redis-master.
+      - ./config/redis-replica.conf:/etc/redis/redis.conf:ro
+
+    # Đảm bảo master được start trước replica.
+    # Lưu ý: depends_on không đảm bảo master đã ready hoàn toàn, chỉ đảm bảo container start trước.
+    depends_on:
+      - redis-master
+
+    command: ["redis-server", "/etc/redis/redis.conf"]
+
+    networks:
+      - redis-net
+
+  redis-replica-2:
+    image: redis:7.2-alpine
+    container_name: redis-replica-2
+    restart: unless-stopped
+
+    # Replica 2 expose ra host port 6381.
+    # Dùng để minh họa mô hình 1 master có nhiều replica.
+    ports:
+      - "6381:6379"
+
+    volumes:
+      # Lưu dữ liệu replica 2 ra host.
+      - ./data/replica-2:/data
+
+      # Dùng chung file config replica.
+      - ./config/redis-replica.conf:/etc/redis/redis.conf:ro
+
+    depends_on:
+      - redis-master
+
+    command: ["redis-server", "/etc/redis/redis.conf"]
+
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    # Bridge network giúp các container gọi nhau bằng service name.
+    # Replica sẽ kết nối master bằng hostname redis-master.
+    driver: bridge

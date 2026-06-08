@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Master/Replica RDB</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --text: #182230;
+            --muted: #667085;
+            --line: #d9e2ef;
+            --red: #dc2626;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --orange: #d97706;
+            --purple: #7c3aed;
+            --dark: #111827;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            width: min(1440px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 18px 0;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: end;
+            margin-bottom: 14px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        h1, h2, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(28px, 4vw, 44px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            max-width: 900px;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .badge {
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: var(--red);
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 4fr) minmax(260px, 1fr);
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        .diagram-card { overflow: hidden; }
+
+        .toolbar {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-title { font-weight: 900; }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            min-height: 34px;
+            padding: 0 11px;
+            background: #ffffff;
+            color: #344054;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        button:hover { background: #f8fafc; }
+
+        .primary {
+            border-color: #fecaca;
+            background: #fef2f2;
+            color: var(--red);
+        }
+
+        .legend {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 9px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            color: #475467;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 0;
+            border-top: 2px solid #98a2b3;
+            display: inline-block;
+        }
+
+        .legend-line.write { border-top-color: var(--blue); }
+        .legend-line.replication { border-top-color: var(--green); }
+        .legend-line.rdb {
+            border-top-color: var(--orange);
+            border-top-style: dashed;
+        }
+
+        .legend-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            display: inline-grid;
+            place-items: center;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .legend-dot.master { background: var(--red); }
+        .legend-dot.replica { background: var(--green); }
+        .legend-dot.disk { background: var(--orange); }
+
+        .viewport {
+            width: 100%;
+            height: min(58vh, 560px);
+            min-height: 440px;
+            overflow: auto;
+            scrollbar-gutter: stable both-edges;
+            background:
+                linear-gradient(#eef2f7 1px, transparent 1px),
+                linear-gradient(90deg, #eef2f7 1px, transparent 1px),
+                #fbfcff;
+            background-size: 26px 26px;
+        }
+
+        .diagram {
+            width: var(--diagram-width, 100%);
+            min-width: var(--diagram-min-width, 1280px);
+            min-height: var(--diagram-min-height, 680px);
+            aspect-ratio: 1280 / 680;
+            display: block;
+        }
+
+        .zone rect {
+            stroke-width: 2;
+            rx: 14;
+            stroke-dasharray: 10 8;
+        }
+
+        .zone.docker rect { fill: rgba(37, 99, 235, 0.045); stroke: rgba(37, 99, 235, 0.45); }
+        .zone.host rect { fill: rgba(217, 119, 6, 0.045); stroke: rgba(217, 119, 6, 0.45); }
+
+        .zone text {
+            text-anchor: start;
+            font-weight: 900;
+            font-size: 16px;
+            fill: #1f2937;
+            letter-spacing: 0;
+        }
+
+        .zone .zone-sub {
+            font-size: 12px;
+            fill: #667085;
+            font-weight: 800;
+        }
+
+        .flow {
+            stroke: #98a2b3;
+            stroke-width: 2.4;
+            fill: none;
+            marker-end: url(#arrow);
+            stroke-linecap: round;
+        }
+
+        .flow.write { stroke: var(--blue); }
+        .flow.replication { stroke: var(--green); }
+        .flow.rdb {
+            stroke: var(--orange);
+            stroke-dasharray: 7 8;
+            animation: dash 1.2s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -36; }
+        }
+
+        .node rect {
+            fill: #ffffff;
+            stroke: #cfd8e7;
+            stroke-width: 2;
+            rx: 8;
+            filter: drop-shadow(0 8px 12px rgba(16, 24, 40, 0.08));
+        }
+
+        .node text {
+            text-anchor: middle;
+            letter-spacing: 0;
+        }
+
+        .node .title {
+            fill: #111827;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .node .sub {
+            fill: #667085;
+            font-size: 12px;
+        }
+
+        .node.master rect { stroke: var(--red); }
+        .node.replica rect { stroke: var(--green); }
+        .node.app rect { stroke: var(--blue); }
+        .node.disk rect { stroke: var(--orange); }
+        .node.config rect { stroke: var(--purple); }
+
+        .card { padding: 14px; }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 7px;
+            max-height: min(58vh, 560px);
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .step {
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 9px 10px;
+            background: #f8fafc;
+            color: #475467;
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            gap: 8px;
+            align-items: start;
+            line-height: 1.35;
+            cursor: pointer;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #d0d5dd;
+            font-weight: 900;
+            color: #344054;
+        }
+
+        .step strong {
+            display: block;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .step span { font-size: 13px; }
+
+        .step.active {
+            border-color: #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .step.active .step-number {
+            background: var(--red);
+            color: #ffffff;
+            border-color: var(--red);
+        }
+
+        .footer-card {
+            display: grid;
+            gap: 10px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .note,
+        .log-box {
+            border-radius: 8px;
+            padding: 12px;
+            font: 13px/1.5 Consolas, "Courier New", monospace;
+            min-height: 74px;
+        }
+
+        .note {
+            background: var(--dark);
+            color: #d1fae5;
+        }
+
+        .log-box {
+            background: #0f172a;
+            color: #dbeafe;
+        }
+
+        .note span,
+        .log-box span {
+            color: #fcd34d;
+            font-weight: 900;
+        }
+
+        @media (max-width: 1120px) {
+            header,
+            .layout,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .viewport {
+                height: 520px;
+                min-height: 420px;
+            }
+
+            .steps { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header>
+            <div>
+                <h1>Redis Master/Replica + RDB</h1>
+                <p class="subtitle">
+                    Mô phỏng hệ thống Redis chạy bằng Docker Compose: một master nhận ghi, hai replica nhận dữ liệu replicate,
+                    và từng node lưu snapshot RDB ra volume trên host.
+                </p>
+            </div>
+            <div class="badge">master / replica / dump.rdb</div>
+
+            <div class="legend">
+                <span class="legend-item"><span class="legend-line write"></span>Ghi/đọc từ app</span>
+                <span class="legend-item"><span class="legend-line replication"></span>Replication master -> replica</span>
+                <span class="legend-item"><span class="legend-line rdb"></span>RDB snapshot ra disk</span>
+                <span class="legend-item"><span class="legend-dot master">M</span>Master nhận ghi</span>
+                <span class="legend-item"><span class="legend-dot replica">R</span>Replica read-only</span>
+                <span class="legend-item"><span class="legend-dot disk">D</span>Volume chứa dump.rdb</span>
+            </div>
+        </header>
+
+        <section class="layout">
+            <section class="panel diagram-card">
+                <div class="toolbar">
+                    <div class="toolbar-title">Mô hình chạy trong Docker</div>
+                    <div class="actions">
+                        <button class="primary" id="playBtn" type="button">Play</button>
+                        <button id="prevBtn" type="button">Prev</button>
+                        <button id="nextBtn" type="button">Next</button>
+                        <button id="resetBtn" type="button">Reset</button>
+                        <button id="zoomOutBtn" type="button">-</button>
+                        <span id="zoomLabel">100%</span>
+                        <button id="zoomInBtn" type="button">+</button>
+                    </div>
+                </div>
+
+                <div class="viewport" id="viewport">
+                    <svg class="diagram" id="diagram" viewBox="0 0 1280 680" role="img" aria-label="Redis master replica RDB diagram">
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#98a2b3"></path>
+                            </marker>
+                        </defs>
+
+                        <g id="zoneLayer"></g>
+                        <g id="flowLayer"></g>
+                        <g id="nodeLayer"></g>
+                        <circle id="packet" cx="92" cy="100" r="10" fill="#dc2626" opacity="0"></circle>
+                    </svg>
+                </div>
+            </section>
+
+            <section class="panel card steps-card">
+                <h2>9 bước hoạt động</h2>
+                <div class="steps" id="steps"></div>
+            </section>
+        </section>
+
+        <footer class="panel card footer-card">
+            <h2>Log / thông tin cần nhớ</h2>
+            <div class="footer-grid">
+                <div class="note">
+                    <span>Rule:</span> App ghi vào master. Replica nhận dữ liệu từ master và mặc định read-only. RDB là snapshot theo thời điểm, có thể mất dữ liệu sau lần snapshot cuối nếu Redis crash.
+                </div>
+                <div class="log-box" id="logBox">
+                    <span>Step 1:</span> Docker Compose tạo network và start các container.
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        const canvasWidth = 1280;
+        const canvasHeight = 680;
+        const zones = [
+            { key: "docker", title: "Docker network: redis-net", sub: "Các container gọi nhau bằng service name", x: 24, y: 28, width: 850, height: 560, type: "docker" },
+            { key: "host", title: "Host filesystem", sub: "Volume data chứa file dump.rdb", x: 910, y: 28, width: 330, height: 560, type: "host" }
+        ];
+
+        const nodes = [
+            { key: "app", title: "Application", sub: "localhost:6379", x: 70, y: 155, type: "app" },
+            { key: "master", title: "redis-master", sub: "master write/read", x: 360, y: 155, type: "master" },
+            { key: "replica1", title: "redis-replica-1", sub: "replica read-only", x: 610, y: 95, type: "replica" },
+            { key: "replica2", title: "redis-replica-2", sub: "replica read-only", x: 610, y: 255, type: "replica" },
+            { key: "masterConf", title: "redis-master.conf", sub: "RDB config", x: 130, y: 420, type: "config" },
+            { key: "replicaConf", title: "redis-replica.conf", sub: "replicaof master", x: 500, y: 420, type: "config" },
+            { key: "masterDisk", title: "data/master", sub: "dump.rdb", x: 960, y: 155, type: "disk" },
+            { key: "replicaDisk", title: "data/replica-*", sub: "dump.rdb", x: 960, y: 330, type: "disk" }
+        ];
+
+        const steps = [
+            { title: "Compose start", text: "Docker Compose tạo network redis-net và start master/replica.", from: "masterConf", to: "master", line: "write" },
+            { title: "Master load config", text: "redis-master đọc config/redis-master.conf.", from: "masterConf", to: "master", line: "write" },
+            { title: "Replica load config", text: "Replica đọc config/redis-replica.conf với replicaof redis-master 6379.", from: "replicaConf", to: "replica1", line: "write" },
+            { title: "App ghi vào master", text: "Ứng dụng ghi SET/DEL/INCR vào redis-master qua port 6379.", from: "app", to: "master", line: "write" },
+            { title: "Master replicate replica 1", text: "Master gửi dữ liệu thay đổi sang redis-replica-1.", from: "master", to: "replica1", line: "replication" },
+            { title: "Master replicate replica 2", text: "Master gửi dữ liệu thay đổi sang redis-replica-2.", from: "master", to: "replica2", line: "replication" },
+            { title: "Master tạo RDB", text: "Theo rule save hoặc BGSAVE, master ghi dump.rdb ra data/master.", from: "master", to: "masterDisk", line: "rdb" },
+            { title: "Replica tạo RDB", text: "Replica cũng có thể tạo dump.rdb trong volume riêng.", from: "replica1", to: "replicaDisk", line: "rdb" },
+            { title: "Khôi phục khi restart", text: "Khi container restart, Redis đọc dump.rdb từ /data để restore dữ liệu.", from: "masterDisk", to: "master", line: "rdb" }
+        ];
+
+        const nodeWidth = 170;
+        const nodeHeight = 86;
+        const zoneLayer = document.getElementById("zoneLayer");
+        const nodeLayer = document.getElementById("nodeLayer");
+        const flowLayer = document.getElementById("flowLayer");
+        const stepsEl = document.getElementById("steps");
+        const packet = document.getElementById("packet");
+        const diagram = document.getElementById("diagram");
+        const viewport = document.getElementById("viewport");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const logBox = document.getElementById("logBox");
+        let activeStep = 0;
+        let zoom = 1;
+        let playing = false;
+
+        function byKey(key) {
+            return nodes.find(node => node.key === key);
+        }
+
+        function center(node) {
+            return { x: node.x + nodeWidth / 2, y: node.y };
+        }
+
+        function zoneTemplate(zone) {
+            return `
+                <g class="zone ${zone.type}">
+                    <rect x="${zone.x}" y="${zone.y}" width="${zone.width}" height="${zone.height}"></rect>
+                    <text x="${zone.x + 20}" y="${zone.y + 30}">${zone.title}</text>
+                    <text class="zone-sub" x="${zone.x + 20}" y="${zone.y + 52}">${zone.sub}</text>
+                </g>
+            `;
+        }
+
+        function nodeTemplate(node) {
+            return `
+                <g class="node ${node.type}" id="node-${node.key}">
+                    <rect x="${node.x}" y="${node.y - nodeHeight / 2}" width="${nodeWidth}" height="${nodeHeight}"></rect>
+                    <text class="title" x="${node.x + 85}" y="${node.y - 8}">${node.title}</text>
+                    <text class="sub" x="${node.x + 85}" y="${node.y + 18}">${node.sub}</text>
+                </g>
+            `;
+        }
+
+        function flowPath(step, index) {
+            const from = center(byKey(step.from));
+            const to = center(byKey(step.to));
+            const midX = Math.round((from.x + to.x) / 2);
+            const path = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
+            return `<path id="flow-${index}" class="flow ${step.line}" d="${path}"></path>`;
+        }
+
+        function render() {
+            zoneLayer.innerHTML = zones.map(zoneTemplate).join("");
+            nodeLayer.innerHTML = nodes.map(nodeTemplate).join("");
+            flowLayer.innerHTML = steps.map(flowPath).join("");
+            stepsEl.innerHTML = steps.map((step, index) => `
+                <div class="step" id="step-${index}" data-index="${index}">
+                    <div class="step-number">${index + 1}</div>
+                    <div>
+                        <strong>${step.title}</strong>
+                        <span>${step.text}</span>
+                    </div>
+                </div>
+            `).join("");
+
+            document.querySelectorAll(".step").forEach(item => {
+                item.addEventListener("click", () => setStep(Number(item.dataset.index)));
+            });
+        }
+
+        function setStep(index) {
+            activeStep = Math.max(0, Math.min(steps.length - 1, index));
+            document.querySelectorAll(".step").forEach((item, itemIndex) => {
+                item.classList.toggle("active", itemIndex === activeStep);
+            });
+            document.querySelectorAll(".flow").forEach((flow, flowIndex) => {
+                flow.style.opacity = flowIndex <= activeStep ? "1" : "0.22";
+                flow.style.strokeWidth = flowIndex === activeStep ? "4" : "2.4";
+            });
+            logBox.innerHTML = `<span>Step ${activeStep + 1}:</span> ${steps[activeStep].title} - ${steps[activeStep].text}`;
+            movePacketTo(activeStep);
+        }
+
+        function movePacketTo(index) {
+            const step = steps[index];
+            const target = center(byKey(step.to));
+            packet.style.transition = "cx 0.45s ease, cy 0.45s ease, opacity 0.2s ease, fill 0.2s ease";
+            packet.setAttribute("cx", target.x);
+            packet.setAttribute("cy", target.y);
+            packet.setAttribute("opacity", "1");
+            packet.setAttribute("fill", step.line === "replication" ? "#16a34a" : step.line === "rdb" ? "#d97706" : "#2563eb");
+        }
+
+        function applyZoom() {
+            diagram.style.setProperty("--diagram-width", `${zoom * 100}%`);
+            diagram.style.setProperty("--diagram-min-width", `${Math.round(canvasWidth * zoom)}px`);
+            diagram.style.setProperty("--diagram-min-height", `${Math.round(canvasHeight * zoom)}px`);
+            zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+        }
+
+        async function play() {
+            if (playing) return;
+            playing = true;
+            for (let i = activeStep; i < steps.length; i++) {
+                setStep(i);
+                await new Promise(resolve => setTimeout(resolve, 900));
+            }
+            playing = false;
+        }
+
+        document.getElementById("playBtn").addEventListener("click", play);
+        document.getElementById("prevBtn").addEventListener("click", () => setStep(activeStep - 1));
+        document.getElementById("nextBtn").addEventListener("click", () => setStep(activeStep + 1));
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            activeStep = 0;
+            packet.setAttribute("opacity", "0");
+            setStep(0);
+            viewport.scrollLeft = 0;
+            viewport.scrollTop = 0;
+        });
+        document.getElementById("zoomInBtn").addEventListener("click", () => {
+            zoom = Math.min(1.8, Number((zoom + 0.15).toFixed(2)));
+            applyZoom();
+        });
+        document.getElementById("zoomOutBtn").addEventListener("click", () => {
+            zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
+            applyZoom();
+        });
+
+        render();
+        applyZoom();
+        setStep(0);
+    </script>
+</body>
+</html>
