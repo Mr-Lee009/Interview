@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CV_LeAnhDuc_JavaDeveloper</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #334155;
+            line-height: 1.5;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+        }
+        .cv-container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .header {
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            color: #1e3a8a;
+            font-size: 26pt;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header h2 {
+            color: #475569;
+            font-size: 16pt;
+            font-weight: normal;
+            margin: 0 0 15px 0;
+        }
+        .contact-info {
+            font-size: 10pt;
+            color: #64748b;
+        }
+        .contact-info span {
+            margin-right: 20px;
+            display: inline-block;
+        }
+        .section-title {
+            color: #1e3a8a;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-left: 4px solid #1e3a8a;
+            padding-left: 10px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+        p.summary-text {
+            font-size: 10.5pt;
+            text-align: justify;
+            margin: 0 0 15px 0;
+        }
+        .skills-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+        .skills-table td {
+            padding: 6px 10px;
+            vertical-align: top;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .skills-table td.skill-category {
+            font-weight: bold;
+            color: #0f172a;
+            width: 25%;
+        }
+        .company-block {
+            margin-bottom: 25px;
+        }
+        .company-header {
+            margin-bottom: 10px;
+        }
+        .company-name {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #0f172a;
+            display: inline-block;
+        }
+        .company-duration {
+            float: right;
+            font-size: 10pt;
+            color: #64748b;
+            font-weight: bold;
+        }
+        .project-block {
+            margin-left: 15px;
+            margin-bottom: 15px;
+        }
+        .project-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin: 5px 0;
+        }
+        .project-meta {
+            font-size: 9.5pt;
+            color: #64748b;
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+        .project-bullets {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 10pt;
+        }
+        .project-bullets li {
+            margin-bottom: 4px;
+            text-align: justify;
+        }
+        .edu-block {
+            margin-bottom: 15px;
+        }
+        .edu-school {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .edu-meta {
+            font-size: 10pt;
+            color: #475569;
+            margin: 3px 0;
+        }
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cv-container">
+    <!-- HEADER SECTION -->
+    <div class="header">
+        <h1>Lê Anh Đức</h1>
+        <h2>Java Software Engineer</h2>
+        <div class="contact-info">
+            <span><strong>DOB:</strong> 27/08/1997</span>
+            <span><strong>Phone:</strong> 0972 491 396</span>
+            <span><strong>Email:</strong> anhduc2781997@gmail.com</span>
+            <span><strong>Address:</strong> Nam Tu Liem, Hanoi</span>
+        </div>
+    </div>
+
+    <!-- PROFESSIONAL SUMMARY -->
+    <div class="section-title">Professional Summary</div>
+    <p class="summary-text">
+        Result-oriented Software Engineer with 4+ years of professional experience specializing in Java enterprise application development and backend architecture. Demonstrated expertise in building scalable microservices, secure payment integration systems, and high-performance real-time features. Proficient in optimizing database queries and containerizing environments using Docker. Proven track record of working effectively in cross-functional international teams (Japan, Thailand, New Zealand) with a strong command of technical English and SOLID design principles.
+    </p>
+
+    <!-- TECHNICAL EXPERTISE -->
+    <div class="section-title">Technical Expertise</div>
+    <table class="skills-table">
+        <tr>
+            <td class="skill-category">Programming Languages</td>
+            <td>Java (11/17), C#, JavaScript, SQL</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Frameworks & Libraries</td>
+            <td>Spring Boot, Spring MVC, Spring Security, WebSocket, .NET, UWP</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Databases & Caching</td>
+            <td>PostgreSQL, MySQL, Oracle Database, SQL Server, Redis</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Cloud & DevOps</td>
+            <td>AWS S3, Docker, Docker Compose, Docker Swarm, Jenkins, CI/CD pipelines</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Tools & Methodologies</td>
+            <td>Git, Maven, Gradle, Jira, Redmine, Agile/Scrum, SOLID Principles, Design Patterns</td>
+        </tr>
+    </table>
+
+    <!-- PROFESSIONAL EXPERIENCE -->
+    <div class="section-title">Professional Experience</div>
+
+    <!-- COMPANHY 1: VietIS -->
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">VietIS</span>
+            <span class="company-duration">01/2024 - Present</span>
+        </div>
+
+        <!-- Project 1.1 -->
+        <div class="project-block">
+            <div class="project-title">Millsheet Management System (Steel Industry Portal for Japan)</div>
+            <div class="project-meta">Java 17, Spring Boot, RESTful API, WebSocket, AWS S3, Git | Team size: 10</div>
+            <ul class="project-bullets">
+                <li>Architected and optimized core modules for steel product metadata and quality certification processing, increasing system reliability.</li>
+                <li>Implemented secure digital signature functionalities to verify and authenticate electronic documents, ensuring the traceability of steel quality certificates.</li>
+                <li>Designed high-performance RESTful APIs for seamless integration with third-party verification services, reducing data exchange latency.</li>
+                <li>Integrated AWS S3 storage infrastructure to handle secure, high-volume document and report uploads.</li>
+                <li>Developed automated batch processing mechanisms to distribute real-time notifications and system compliance updates to enterprise users.</li>
+            </ul>
+        </div>
+
+        <!-- Project 1.2 -->
+        <div class="project-block">
+            <div class="project-title">Education & Payment Management Platform</div>
+            <div class="project-meta">Java 17, Spring Boot, WebSocket, AWS S3, HTML, jQuery, Git | Team size: 13</div>
+            <ul class="project-bullets">
+                <li>Developed core features for academic course registration and student enrollment management, processing thousands of requests during peak periods.</li>
+                <li>Built a real-time customer support chat system using WebSockets, integrating advanced messaging features like secure file transfers, image sharing, and sticker messaging.</li>
+                <li>Optimized CRUD transactions and database indexing across multiple system management screens, improving page loading speed by [X%].</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- COMPANY 2: Vatek VietNam -->
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">Vatek VietNam</span>
+            <span class="company-duration">06/2022 - 01/2024</span>
+        </div>
+
+        <!-- Project 2.1 -->
+        <div class="project-block">
+            <div class="project-title">Cross-Platform Messaging & Chat Application (New Zealand Market)</div>
+            <div class="project-meta">C#, UWP, XMPP Protocol, Git | Team size: 3</div>
+            <ul class="project-bullets">
+                <li>Collaborated with engineers from Hong Kong and New Zealand to analyze requirements and maintain a high-volume chat system.</li>
+                <li>Parsed and structured complex XMPP protocols to differentiate message types, handling group chats, 1-on-1 conversations, and status indicators efficiently.</li>
+                <li>Developed core messaging features including file sharing, location synchronization, avatar modification, and "Do Not Disturb" (DND) modes.</li>
+            </ul>
+        </div>
+
+        <!-- Project 2.2 -->
+        <div class="project-block">
+            <div class="project-title">Insurance Plan Registration Portal (Thailand Market)</div>
+            <div class="project-meta">Java, Spring Boot, JSON, JOSE Encryption, Jenkins, GitLab | Team size: 10</div>
+            <ul class="project-bullets">
+                <li>Engineered RESTful APIs calculating user age and dynamic risk profiles to serve personalized insurance plan registration flows.</li>
+                <li>Implemented the JOSE encryption standard to secure highly sensitive customer data for P2PC payments through payment gateways.</li>
+                <li>Managed microservices data communications using structured JSON objects and successfully deployed deliverables utilizing Jenkins CI/CD.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- COMPANY 3: TTC Solution -->
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">TTC Solution (Partnership with Viettel Telecom)</span>
+            <span class="company-duration">11/2020 - 06/2022</span>
+        </div>
+
+        <!-- Consolidated Projects -->
+        <div class="project-block">
+            <div class="project-title">Viettel Telecom Telecommunication & Payment Systems (MBCCS, Freight Payment)</div>
+            <div class="project-meta">Java, Spring Boot, JavaScript, Redis, XML, JSON, Jira, Git | Team size: 7 - 20</div>
+            <ul class="project-bullets">
+                <li>Accelerated query performance for high-frequency customer profiles and national ID verification records by [X%] by deploying smart Redis cache storage strategies.</li>
+                <li>Built automated batch processes handling critical background workflows to send millions of periodic SMS freight and service fee notifications.</li>
+                <li>Developed robust online payment methods allowing millions of telecommunication clients to pay securely via scratch cards and digital wallets.</li>
+                <li>Programmed coordinate-based geolocation algorithms to calculate precise physical distances to the nearest Viettel stores on digital maps.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- COMPANY 4: IIT -->
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">IIT</span>
+            <span class="company-duration">05/2018 - 10/2018</span>
+        </div>
+        <div class="project-block">
+            <div class="project-title">Tour Booking & Marketing Platform</div>
+            <div class="project-meta">C#, SQL Server, Visual Studio | Team size: 5</div>
+            <ul class="project-bullets">
+                <li>Developed core customer booking engines and content management modules for media attachments (images/videos).</li>
+                <li>Created custom data reporting tools exporting clean tabular metrics for executive performance review.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- EDUCATION -->
+    <div class="section-title">Education</div>
+    <div class="edu-block">
+        <div class="edu-school">Military Technical Academy (MTA)</div>
+        <div class="edu-meta"><strong>Degree:</strong> Software Engineering (5-year Engineer Program) | 2015 - 2020</div>
+        <div class="edu-meta"><strong>GPA:</strong> 3.06 / 4.0 (Graduated with Good Classification)</div>
+        <div class="edu-meta"><strong>Core Coursework:</strong> Data Structures & Algorithms, Database Systems, Advanced Software Engineering</div>
+    </div>
+</div>
+
+</body>
+</html>

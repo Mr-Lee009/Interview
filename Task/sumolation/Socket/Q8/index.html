@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Multi-Node Broadcast Simulation</title>
+    <style>
+        :root {
+            --bg: #eef5ff;
+            --panel: #ffffff;
+            --text: #10243e;
+            --muted: #60758b;
+            --line: #cbd5e1;
+            --ok: #16a34a;
+            --err: #dc2626;
+            --warn: #d97706;
+            --primary: #2563eb;
+            --server1: #7c3aed;
+            --server2: #0891b2;
+            --broker: #f59e0b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.94);
+            border: 1px solid #dde7f1;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin: 0 auto 20px;
+            max-width: 900px;
+            text-align: center;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .action-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .bad-btn { background: var(--err); }
+        .good-btn { background: var(--ok); }
+        .reset-btn { background: #64748b; }
+
+        .simulator {
+            position: relative;
+            height: 470px;
+            border: 1px solid #dde7f1;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 30%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            overflow: hidden;
+        }
+
+        .simulator svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .simulator line {
+            stroke: var(--line);
+            stroke-width: 2;
+        }
+
+        .node {
+            position: absolute;
+            width: 200px;
+            transform: translate(-50%, -50%);
+            background: var(--panel);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            transition: 0.25s ease;
+            z-index: 2;
+        }
+
+        .node h2 {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+
+        .node p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .node.active {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        .client {
+            width: 150px;
+            padding: 12px;
+        }
+
+        #userA { top: 390px; left: 18%; border-color: var(--primary); }
+        #server1 { top: 240px; left: 30%; border-color: var(--server1); background: #faf5ff; }
+        #broker { top: 100px; left: 50%; border-color: var(--broker); background: #fff7ed; }
+        #server2 { top: 240px; left: 70%; border-color: var(--server2); background: #ecfeff; }
+        #userB { top: 390px; left: 62%; border-color: #0ea5e9; }
+        #userC { top: 390px; left: 82%; border-color: #10b981; }
+
+        .packet {
+            position: absolute;
+            z-index: 3;
+            min-width: 130px;
+            transform: translate(-50%, -50%);
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            opacity: 0;
+            white-space: nowrap;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+        }
+
+        .status {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #dde7f1;
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        .state-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 13px;
+        }
+
+        .state-row:last-child { border-bottom: 0; }
+
+        .badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .badge.ok { background: #dcfce7; color: #166534; }
+        .badge.err { background: #fee2e2; color: #991b1b; }
+        .badge.warn { background: #fef3c7; color: #92400e; }
+
+        .log {
+            margin-top: 18px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            height: 240px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .log-info { color: #93c5fd; }
+        .log-ok { color: #86efac; }
+        .log-err { color: #fca5a5; }
+        .log-warn { color: #fde68a; }
+
+        @media (max-width: 980px) {
+            .status { grid-template-columns: 1fr; }
+            .simulator { height: 700px; }
+
+            #broker { top: 80px; left: 50%; }
+            #server1 { top: 210px; left: 50%; }
+            #server2 { top: 360px; left: 50%; }
+            #userA { top: 560px; left: 22%; }
+            #userB { top: 560px; left: 50%; }
+            #userC { top: 560px; left: 78%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Mô phỏng broadcast WebSocket khi có nhiều server</h1>
+    <p class="subtitle">
+        Điểm quan trọng là: mỗi WebSocket node chỉ biết các client đang nối vào chính nó.
+        Nếu không có `Redis`, `Kafka`, `RabbitMQ` hoặc broker tương tự, message sẽ không tới được client đang ở node khác.
+    </p>
+
+    <div class="controls">
+        <button class="action-btn bad-btn" id="btn-local">Broadcast local sai</button>
+        <button class="action-btn good-btn" id="btn-broker">Broadcast qua broker đúng</button>
+        <button class="action-btn reset-btn" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="simulator">
+        <svg viewBox="0 0 1000 470" preserveAspectRatio="none">
+            <line x1="180" y1="390" x2="300" y2="240"></line>
+            <line x1="300" y1="240" x2="500" y2="100"></line>
+            <line x1="500" y1="100" x2="700" y2="240"></line>
+            <line x1="700" y1="240" x2="620" y2="390"></line>
+            <line x1="700" y1="240" x2="820" y2="390"></line>
+        </svg>
+
+        <div class="node client" id="userA">
+            <h2>User A</h2>
+            <p>Kết nối vào Server 1</p>
+        </div>
+
+        <div class="node" id="server1">
+            <h2>Server 1</h2>
+            <p>Giữ kết nối của User A và nhận tin nhắn đầu vào.</p>
+        </div>
+
+        <div class="node" id="broker">
+            <h2>Redis / Kafka / RabbitMQ</h2>
+            <p>Tầng đồng bộ event giữa các WebSocket node.</p>
+        </div>
+
+        <div class="node" id="server2">
+            <h2>Server 2</h2>
+            <p>Giữ kết nối của User B và User C.</p>
+        </div>
+
+        <div class="node client" id="userB">
+            <h2>User B</h2>
+            <p>Kết nối vào Server 2</p>
+        </div>
+
+        <div class="node client" id="userC">
+            <h2>User C</h2>
+            <p>Kết nối vào Server 2</p>
+        </div>
+
+        <div class="packet" id="packet"></div>
+    </div>
+
+    <div class="status">
+        <div class="card">
+            <h3>Trạng thái client</h3>
+            <div class="state-row"><span>User A</span><span class="badge" id="state-a">WAITING</span></div>
+            <div class="state-row"><span>User B</span><span class="badge" id="state-b">WAITING</span></div>
+            <div class="state-row"><span>User C</span><span class="badge" id="state-c">WAITING</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Điều gì xảy ra</h3>
+            <div class="state-row"><span>Server 1</span><span class="badge" id="state-s1">IDLE</span></div>
+            <div class="state-row"><span>Broker</span><span class="badge" id="state-broker">IDLE</span></div>
+            <div class="state-row"><span>Server 2</span><span class="badge" id="state-s2">IDLE</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Kết luận</h3>
+            <div class="state-row"><span>Không dùng broker</span><span class="badge err">Sai khi scale</span></div>
+            <div class="state-row"><span>Dùng broker chung</span><span class="badge ok">Đúng</span></div>
+            <div class="state-row"><span>Mục tiêu</span><span class="badge warn">Mọi node cùng thấy event</span></div>
+        </div>
+    </div>
+
+    <div class="log" id="logBox"></div>
+</div>
+
+<script>
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const packet = document.getElementById("packet");
+    const logBox = document.getElementById("logBox");
+
+    const nodes = {
+        userA: document.getElementById("userA"),
+        server1: document.getElementById("server1"),
+        broker: document.getElementById("broker"),
+        server2: document.getElementById("server2"),
+        userB: document.getElementById("userB"),
+        userC: document.getElementById("userC")
+    };
+
+    const states = {
+        a: document.getElementById("state-a"),
+        b: document.getElementById("state-b"),
+        c: document.getElementById("state-c"),
+        s1: document.getElementById("state-s1"),
+        broker: document.getElementById("state-broker"),
+        s2: document.getElementById("state-s2")
+    };
+
+    const positions = {
+        userA: { top: "390px", left: "18%" },
+        server1: { top: "240px", left: "30%" },
+        broker: { top: "100px", left: "50%" },
+        server2: { top: "240px", left: "70%" },
+        userB: { top: "390px", left: "62%" },
+        userC: { top: "390px", left: "82%" }
+    };
+
+    function setBadge(el, text, cls = "") {
+        el.textContent = text;
+        el.className = "badge";
+        if (cls) el.classList.add(cls);
+    }
+
+    function resetBoard() {
+        logBox.innerHTML = "";
+        packet.style.opacity = "0";
+        setBadge(states.a, "WAITING");
+        setBadge(states.b, "WAITING");
+        setBadge(states.c, "WAITING");
+        setBadge(states.s1, "IDLE");
+        setBadge(states.broker, "IDLE");
+        setBadge(states.s2, "IDLE");
+
+        Object.values(nodes).forEach((node) => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        });
+    }
+
+    function log(text, type = "info") {
+        logBox.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function glow(nodeKey, color) {
+        const node = nodes[nodeKey];
+        node.classList.add("active");
+        node.style.boxShadow = `0 0 0 4px ${color}22, 0 14px 30px rgba(15, 23, 42, 0.14)`;
+        setTimeout(() => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        }, 850);
+    }
+
+    async function move(from, to, text, color) {
+        packet.textContent = text;
+        packet.style.background = color;
+        packet.style.opacity = "1";
+        packet.style.transition = "none";
+        packet.style.top = positions[from].top;
+        packet.style.left = positions[from].left;
+        await wait(50);
+        packet.style.transition = "top 0.95s ease, left 0.95s ease, opacity 0.2s ease";
+        packet.style.top = positions[to].top;
+        packet.style.left = positions[to].left;
+        await wait(950);
+        packet.style.opacity = "0";
+    }
+
+    async function runLocalOnly() {
+        resetBoard();
+        log("USER A: Gửi tin nhắn vào room chat.", "info");
+        glow("userA", "#2563eb");
+        setBadge(states.a, "SENT", "ok");
+        await wait(650);
+
+        log("SERVER 1: Nhận message từ WebSocket của User A.", "info");
+        await move("userA", "server1", "chat.message", "#7c3aed");
+        glow("server1", "#7c3aed");
+        setBadge(states.s1, "RECEIVED", "ok");
+        await wait(350);
+
+        log("SERVER 1: Chỉ broadcast local trong memory của chính nó.", "warn");
+        setBadge(states.s1, "LOCAL ONLY", "warn");
+        await wait(400);
+
+        log("KẾT QUẢ: User B và User C đang ở Server 2 nên không nhận được gì.", "err");
+        setBadge(states.b, "MISSED", "err");
+        setBadge(states.c, "MISSED", "err");
+        setBadge(states.s2, "NO EVENT", "err");
+    }
+
+    async function runWithBroker() {
+        resetBoard();
+        log("USER A: Gửi tin nhắn vào room chat.", "info");
+        glow("userA", "#2563eb");
+        setBadge(states.a, "SENT", "ok");
+        await wait(650);
+
+        log("SERVER 1: Nhận message từ User A.", "info");
+        await move("userA", "server1", "chat.message", "#7c3aed");
+        glow("server1", "#7c3aed");
+        setBadge(states.s1, "RECEIVED", "ok");
+        await wait(350);
+
+        log("SERVER 1: Publish event ra broker chung.", "warn");
+        await move("server1", "broker", "publish", "#f59e0b");
+        glow("broker", "#f59e0b");
+        setBadge(states.broker, "PUBLISHED", "ok");
+        await wait(350);
+
+        log("BROKER: Phân phối cùng một event cho các node đang subscribe.", "warn");
+        await move("broker", "server2", "fan-out", "#0891b2");
+        glow("server2", "#0891b2");
+        setBadge(states.s2, "RECEIVED EVENT", "ok");
+        await wait(350);
+
+        log("SERVER 2: Push message xuống các client local của mình.", "ok");
+        await move("server2", "userB", "push", "#16a34a");
+        glow("userB", "#16a34a");
+        setBadge(states.b, "RECEIVED", "ok");
+        await wait(250);
+
+        await move("server2", "userC", "push", "#16a34a");
+        glow("userC", "#16a34a");
+        setBadge(states.c, "RECEIVED", "ok");
+        await wait(250);
+
+        log("KẾT QUẢ: Dù User B và User C ở node khác, họ vẫn nhận được đúng message.", "ok");
+    }
+
+    document.getElementById("btn-local").addEventListener("click", runLocalOnly);
+    document.getElementById("btn-broker").addEventListener("click", runWithBroker);
+    document.getElementById("btn-reset").addEventListener("click", resetBoard);
+
+    resetBoard();
+    log("Bấm 'Broadcast local sai' để xem lỗi khi chỉ dùng memory của một node, hoặc 'Broadcast qua broker đúng' để xem cách triển khai chuẩn.", "info");
+</script>
+</body>
+</html>

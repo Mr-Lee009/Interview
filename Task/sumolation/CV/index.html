@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV_LeAnhDuc_Vietnamese</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.5;
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        .cv-wrapper {
+            display: flex;
+            width: 900px;
+            min-height: 1200px;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ====== CỘT TRÁI (Màu xanh đậm) ====== */
+        .left-column {
+            width: 35%;
+            background-color: #315b4c; /* Màu xanh tương đồng ảnh mẫu */
+            color: #fff;
+            padding: 40px 25px;
+        }
+
+        .profile-pic-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-pic {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            object-fit: cover;
+            background-color: #e0e0e0;
+        }
+
+        .name-title {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .name {
+            font-size: 26px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .title {
+            font-size: 16px;
+            color: #a8d5c4;
+        }
+
+        .contact-list {
+            list-style: none;
+            margin-bottom: 30px;
+            font-size: 13px;
+        }
+
+        .contact-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .contact-list i {
+            width: 25px;
+            font-size: 14px;
+            color: #a8d5c4;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .left-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #a8d5c4;
+            display: inline-block;
+        }
+
+        .objective-text {
+            font-size: 13px;
+            text-align: justify;
+            margin-bottom: 30px;
+            color: #e2e8f0;
+        }
+
+        .skills-container {
+            margin-bottom: 30px;
+        }
+
+        .skill-item {
+            margin-bottom: 12px;
+        }
+
+        .skill-name {
+            font-size: 13px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .skill-bar {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .skill-progress {
+            height: 100%;
+            background-color: #a8d5c4; /* Màu thanh tiến trình */
+        }
+
+        .hobbies-list {
+            list-style: disc;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+        
+        .hobbies-list li {
+            margin-bottom: 5px;
+        }
+
+        /* ====== CỘT PHẢI (Màu trắng) ====== */
+        .right-column {
+            width: 65%;
+            padding: 40px 35px;
+        }
+
+        .right-section {
+            margin-bottom: 35px;
+        }
+
+        .right-section-title {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #315b4c;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .right-section-title i {
+            background-color: #315b4c;
+            color: #fff;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 16px;
+        }
+
+        /* Header của từng block kinh nghiệm/học vấn */
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+
+        .block-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #222;
+        }
+
+        .block-date {
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .block-subtitle {
+            font-size: 15px;
+            font-weight: bold;
+            color: #315b4c;
+            margin-bottom: 10px;
+        }
+
+        .block-content {
+            margin-bottom: 20px;
+        }
+
+        .block-list {
+            list-style-type: disc;
+            padding-left: 20px;
+            font-size: 13.5px;
+            color: #444;
+            text-align: justify;
+        }
+
+        .block-list li {
+            margin-bottom: 6px;
+        }
+        
+        .tech-stack {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="cv-wrapper">
+    <div class="left-column">
+        <div class="profile-pic-container">
+            <img src="https://via.placeholder.com/160/cccccc/ffffff?text=Anh+Duc" alt="Lê Anh Đức" class="profile-pic">
+        </div>
+
+        <div class="name-title">
+            <div class="name">Lê Anh Đức</div>
+            <div class="title">Lập trình viên Java (Senior)</div>
+        </div>
+
+        <ul class="contact-list">
+            <li><i class="fas fa-phone-alt"></i> 0972 491 396</li>
+            <li><i class="fas fa-envelope"></i> anhduc2781997@gmail.com</li>
+            <li><i class="fas fa-map-marker-alt"></i> Phú Đô, Nam Từ Liêm, Hà Nội</li>
+            <li><i class="fas fa-calendar-alt"></i> 27/08/1997</li>
+            <li><i class="fas fa-user"></i> Nam</li>
+        </ul>
+
+        <div class="left-section-title">Mục tiêu nghề nghiệp</div>
+        <div class="objective-text">
+            Với hơn 4 năm kinh nghiệm thực chiến trong việc phát triển phần mềm Java và hệ thống Backend, tôi mong muốn ứng tuyển vào vị trí Senior Java Developer. Mục tiêu của tôi là áp dụng kiến thức về kiến trúc Microservices, tối ưu hóa Database và CI/CD để nâng cấp hiệu năng sản phẩm, mang lại giá trị thực tế cho doanh nghiệp. Đồng thời, tôi định hướng phát triển trở thành một Technical Lead xuất sắc trong vòng 2 năm tới.
+        </div>
+
+        <div class="left-section-title">Kỹ năng chuyên môn</div>
+        <div class="skills-container">
+            <div class="skill-item">
+                <span class="skill-name">Java, Spring Boot, Spring MVC</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 90%;"></div></div>
+            </div>
+            <div class="skill-item">
+                <span class="skill-name">C#, .NET, UWP</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 70%;"></div></div>
+            </div>
+            <div class="skill-item">
+                <span class="skill-name">PostgreSQL, SQL Server, Redis</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 85%;"></div></div>
+            </div>
+            <div class="skill-item">
+                <span class="skill-name">Docker, AWS S3, CI/CD (Jenkins)</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 75%;"></div></div>
+            </div>
+            <div class="skill-item">
+                <span class="skill-name">Message Broker (Kafka, RabbitMQ)</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 70%;"></div></div>
+            </div>
+            <div class="skill-item">
+                <span class="skill-name">Tiếng Anh chuyên ngành (Giao tiếp tốt)</span>
+                <div class="skill-bar"><div class="skill-progress" style="width: 80%;"></div></div>
+            </div>
+        </div>
+
+        <div class="left-section-title">Sở thích</div>
+        <ul class="hobbies-list">
+            <li>Nghiên cứu công nghệ mới</li>
+            <li>Đọc sách kỹ năng mềm</li>
+            <li>Thể thao (Bóng đá, Chạy bộ)</li>
+        </ul>
+    </div>
+
+    <div class="right-column">
+        
+        <div class="right-section">
+            <div class="right-section-title">
+                <i class="fas fa-lightbulb"></i> Học vấn
+            </div>
+            
+            <div class="block-content">
+                <div class="block-header">
+                    <div class="block-title">Kỹ thuật Phần mềm (Chương trình Kỹ sư)</div>
+                    <div class="block-date">2015 - 2020</div>
+                </div>
+                <div class="block-subtitle">Học viện Kỹ thuật Quân sự (MTA)</div>
+                <ul class="block-list">
+                    <li>Tốt nghiệp loại Khá (GPA: 3.06/4.0)</li>
+                    <li>Nền tảng vững chắc về: Cấu trúc dữ liệu & Thuật toán, Hệ cơ sở dữ liệu, Công nghệ phần mềm tiên tiến.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="right-section-title">
+                <i class="fas fa-users"></i> Kinh nghiệm làm việc
+            </div>
+
+            <div class="block-content">
+                <div class="block-header">
+                    <div class="block-title">Kỹ sư Phần mềm Java</div>
+                    <div class="block-date">01/2024 - Hiện tại</div>
+                </div>
+                <div class="block-subtitle">Công ty VietIS</div>
+                <div class="tech-stack">Tech stack: Java 17, Spring Boot, RESTful API, WebSocket, AWS S3</div>
+                <ul class="block-list">
+                    <li><b>Dự án Quản lý Millsheet (Thị trường Nhật):</b> Thiết kế và tối ưu core module quản lý chứng nhận chất lượng thép. Tích hợp tính năng <b>Chữ ký số</b> để xác thực tài liệu điện tử, đảm bảo tính pháp lý và truy xuất nguồn gốc.</li>
+                    <li>Xây dựng hệ thống API RESTful hiệu suất cao để giao tiếp với các dịch vụ bên thứ ba. Thiết lập cơ chế chạy Batch tự động để gửi thông báo hệ thống.</li>
+                    <li><b>Dự án Nền tảng Giáo dục:</b> Xây dựng ứng dụng Chat hỗ trợ khách hàng theo thời gian thực (Real-time) bằng WebSocket, hỗ trợ truyền tải file, hình ảnh an toàn qua AWS S3.</li>
+                    <li>Tối ưu hóa các thao tác truy vấn (CRUD) trên hệ thống quản trị, cải thiện tốc độ tải trang đáng kể.</li>
+                </ul>
+            </div>
+
+            <div class="block-content">
+                <div class="block-header">
+                    <div class="block-title">Kỹ sư Phần mềm (Fullstack/Backend)</div>
+                    <div class="block-date">06/2022 - 01/2024</div>
+                </div>
+                <div class="block-subtitle">Công ty Vatek VietNam</div>
+                <div class="tech-stack">Tech stack: Java, Spring Boot, C#, UWP, JOSE Encryption, Jenkins</div>
+                <ul class="block-list">
+                    <li><b>Dự án Chat App (Thị trường New Zealand):</b> Phối hợp cùng team kỹ sư quốc tế (Hong Kong, New Zealand) để phân tích giao thức XMPP phức tạp, phân loại luồng tin nhắn (1-1, Group Chat).</li>
+                    <li>Phát triển các tính năng lõi bằng C# như chia sẻ file, chia sẻ vị trí và chế độ Không làm phiền (DND).</li>
+                    <li><b>Dự án Cổng Bảo Hiểm (Thị trường Thái Lan):</b> Xây dựng API tính toán động độ tuổi và gói bảo hiểm. Áp dụng chuẩn mã hóa <b>JOSE</b> để bảo mật tuyệt đối dữ liệu khách hàng khi thanh toán qua cổng P2PC.</li>
+                    <li>Chịu trách nhiệm đóng gói và triển khai ứng dụng tự động thông qua Jenkins.</li>
+                </ul>
+            </div>
+
+            <div class="block-content">
+                <div class="block-header">
+                    <div class="block-title">Kỹ sư Phần mềm Java</div>
+                    <div class="block-date">11/2020 - 06/2022</div>
+                </div>
+                <div class="block-subtitle">TTC Solution (Đối tác hệ thống Viettel)</div>
+                <div class="tech-stack">Tech stack: Java, Spring Boot, Redis, XML, JSON</div>
+                <ul class="block-list">
+                    <li><b>Dự án MBCCS & Hệ thống Thanh toán cước:</b> Triển khai chiến lược bộ nhớ đệm (Cache) thông minh bằng <b>Redis</b> để lưu trữ hồ sơ khách hàng, hình ảnh CCCD, giúp tăng tốc độ truy vấn dữ liệu lên nhiều lần.</li>
+                    <li>Phát triển hệ thống chạy nền tự động (Auto batch) quy mô lớn để gửi hàng triệu SMS thông báo cước phí định kỳ cho người dùng.</li>
+                    <li>Tích hợp cổng thanh toán trực tuyến đa dạng (thẻ cào, ví điện tử) cho hàng triệu khách hàng Viettel. Lập trình thuật toán bản đồ dựa trên tọa độ để tính khoảng cách tới cửa hàng gần nhất.</li>
+                </ul>
+            </div>
+
+            <div class="block-content">
+                <div class="block-header">
+                    <div class="block-title">Kỹ sư Phần mềm C#</div>
+                    <div class="block-date">05/2018 - 10/2018</div>
+                </div>
+                <div class="block-subtitle">Công ty IIT</div>
+                <ul class="block-list">
+                    <li>Phát triển nền tảng Booking Tour du lịch. Xây dựng module quản trị nội dung (CMS) cho phép upload media (ảnh, video).</li>
+                    <li>Tạo công cụ xuất báo cáo dữ liệu tùy chỉnh phục vụ cho hoạt động marketing của doanh nghiệp.</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

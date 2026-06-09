@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>CV_LeAnhDuc_JavaDeveloper_VI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #334155;
+            line-height: 1.5;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+        }
+        .cv-container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .header {
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            color: #1e3a8a;
+            font-size: 26pt;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header h2 {
+            color: #475569;
+            font-size: 16pt;
+            font-weight: normal;
+            margin: 0 0 15px 0;
+        }
+        .contact-info {
+            font-size: 10pt;
+            color: #64748b;
+        }
+        .contact-info span {
+            margin-right: 20px;
+            display: inline-block;
+        }
+        .section-title {
+            color: #1e3a8a;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-left: 4px solid #1e3a8a;
+            padding-left: 10px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+        p.summary-text {
+            font-size: 10.5pt;
+            text-align: justify;
+            margin: 0 0 15px 0;
+        }
+        .skills-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+        .skills-table td {
+            padding: 6px 10px;
+            vertical-align: top;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .skills-table td.skill-category {
+            font-weight: bold;
+            color: #0f172a;
+            width: 25%;
+        }
+        .company-block {
+            margin-bottom: 25px;
+        }
+        .company-header {
+            margin-bottom: 10px;
+        }
+        .company-name {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #0f172a;
+            display: inline-block;
+        }
+        .company-duration {
+            float: right;
+            font-size: 10pt;
+            color: #64748b;
+            font-weight: bold;
+        }
+        .project-block {
+            margin-left: 15px;
+            margin-bottom: 15px;
+        }
+        .project-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin: 5px 0;
+        }
+        .project-meta {
+            font-size: 9.5pt;
+            color: #64748b;
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+        .project-bullets {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 10pt;
+        }
+        .project-bullets li {
+            margin-bottom: 4px;
+            text-align: justify;
+        }
+        .edu-block {
+            margin-bottom: 15px;
+        }
+        .edu-school {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .edu-meta {
+            font-size: 10pt;
+            color: #475569;
+            margin: 3px 0;
+        }
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cv-container">
+    <div class="header">
+        <h1>Lê Anh Đức</h1>
+        <h2>Kỹ sư Phần mềm Java</h2>
+        <div class="contact-info">
+            <span><strong>Ngày sinh:</strong> 27/08/1997</span>
+            <span><strong>Điện thoại:</strong> 0972 491 396</span>
+            <span><strong>Email:</strong> anhduc2781997@gmail.com</span>
+            <span><strong>Địa chỉ:</strong> Nam Từ Liêm, Hà Nội</span>
+        </div>
+    </div>
+
+    <div class="section-title">Tóm tắt chuyên môn</div>
+    <p class="summary-text">
+        Kỹ sư phần mềm định hướng kết quả với hơn 4 năm kinh nghiệm chuyên sâu trong phát triển ứng dụng doanh nghiệp bằng Java và thiết kế kiến trúc backend. Có kinh nghiệm xây dựng hệ thống microservices có khả năng mở rộng, tích hợp thanh toán an toàn và các tính năng realtime hiệu năng cao. Thành thạo tối ưu truy vấn cơ sở dữ liệu, đóng gói môi trường bằng Docker và làm việc hiệu quả trong các nhóm đa quốc gia như Nhật Bản, Thái Lan và New Zealand. Có nền tảng tốt về tiếng Anh kỹ thuật, nguyên lý SOLID và Design Patterns.
+    </p>
+
+    <div class="section-title">Kỹ năng kỹ thuật</div>
+    <table class="skills-table">
+        <tr>
+            <td class="skill-category">Ngôn ngữ lập trình</td>
+            <td>Java (11/17), C#, JavaScript, SQL</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Framework & Thư viện</td>
+            <td>Spring Boot, Spring MVC, Spring Security, WebSocket, .NET, UWP</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Cơ sở dữ liệu & Cache</td>
+            <td>PostgreSQL, MySQL, Oracle Database, SQL Server, Redis</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Cloud & DevOps</td>
+            <td>AWS S3, Docker, Docker Compose, Docker Swarm, Jenkins, CI/CD pipelines</td>
+        </tr>
+        <tr>
+            <td class="skill-category">Công cụ & Phương pháp</td>
+            <td>Git, Maven, Gradle, Jira, Redmine, Agile/Scrum, SOLID Principles, Design Patterns</td>
+        </tr>
+    </table>
+
+    <div class="section-title">Kinh nghiệm làm việc</div>
+
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">VietIS</span>
+            <span class="company-duration">01/2024 - Hiện tại</span>
+        </div>
+
+        <div class="project-block">
+            <div class="project-title">Hệ thống quản lý Millsheet (Cổng thông tin ngành thép cho thị trường Nhật Bản)</div>
+            <div class="project-meta">Java 17, Spring Boot, RESTful API, WebSocket, AWS S3, Git | Quy mô nhóm: 10</div>
+            <ul class="project-bullets">
+                <li>Thiết kế và tối ưu các module lõi liên quan đến metadata sản phẩm thép và xử lý chứng chỉ chất lượng, giúp nâng cao độ ổn định hệ thống.</li>
+                <li>Triển khai chức năng chữ ký số để xác thực tài liệu điện tử, đảm bảo khả năng truy vết cho các chứng chỉ chất lượng thép.</li>
+                <li>Thiết kế RESTful API hiệu năng cao để tích hợp với các dịch vụ xác minh bên thứ ba, giảm độ trễ trao đổi dữ liệu.</li>
+                <li>Tích hợp AWS S3 để lưu trữ an toàn khối lượng lớn tài liệu và báo cáo tải lên.</li>
+                <li>Phát triển cơ chế batch tự động để phân phối thông báo realtime và các cập nhật tuân thủ hệ thống đến người dùng doanh nghiệp.</li>
+            </ul>
+        </div>
+
+        <div class="project-block">
+            <div class="project-title">Nền tảng quản lý giáo dục và thanh toán</div>
+            <div class="project-meta">Java 17, Spring Boot, WebSocket, AWS S3, HTML, jQuery, Git | Quy mô nhóm: 13</div>
+            <ul class="project-bullets">
+                <li>Phát triển các tính năng lõi cho đăng ký khóa học và quản lý ghi danh học viên, xử lý hàng nghìn request trong các giai đoạn cao điểm.</li>
+                <li>Xây dựng hệ thống chat hỗ trợ khách hàng realtime bằng WebSocket, hỗ trợ gửi file an toàn, chia sẻ hình ảnh và sticker.</li>
+                <li>Tối ưu CRUD và index cơ sở dữ liệu cho nhiều màn hình quản trị, giúp cải thiện tốc độ tải trang.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">Vatek Việt Nam</span>
+            <span class="company-duration">06/2022 - 01/2024</span>
+        </div>
+
+        <div class="project-block">
+            <div class="project-title">Ứng dụng chat và nhắn tin đa nền tảng (Thị trường New Zealand)</div>
+            <div class="project-meta">C#, UWP, XMPP Protocol, Git | Quy mô nhóm: 3</div>
+            <ul class="project-bullets">
+                <li>Phối hợp cùng kỹ sư tại Hong Kong và New Zealand để phân tích yêu cầu và bảo trì hệ thống chat lưu lượng lớn.</li>
+                <li>Phân tích và chuẩn hóa các gói tin XMPP phức tạp để xử lý hiệu quả chat nhóm, chat 1-1 và trạng thái người dùng.</li>
+                <li>Phát triển các tính năng nhắn tin chính như chia sẻ file, đồng bộ vị trí, thay đổi avatar và chế độ không làm phiền.</li>
+            </ul>
+        </div>
+
+        <div class="project-block">
+            <div class="project-title">Cổng đăng ký gói bảo hiểm (Thị trường Thái Lan)</div>
+            <div class="project-meta">Java, Spring Boot, JSON, JOSE Encryption, Jenkins, GitLab | Quy mô nhóm: 10</div>
+            <ul class="project-bullets">
+                <li>Xây dựng RESTful API tính tuổi và hồ sơ rủi ro động của người dùng để phục vụ luồng đăng ký gói bảo hiểm phù hợp.</li>
+                <li>Triển khai chuẩn mã hóa JOSE để bảo vệ dữ liệu nhạy cảm của khách hàng trong thanh toán P2PC qua cổng thanh toán.</li>
+                <li>Quản lý giao tiếp dữ liệu giữa các microservices bằng JSON có cấu trúc và triển khai sản phẩm qua Jenkins CI/CD.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">TTC Solution (Hợp tác cùng Viettel Telecom)</span>
+            <span class="company-duration">11/2020 - 06/2022</span>
+        </div>
+
+        <div class="project-block">
+            <div class="project-title">Hệ thống viễn thông và thanh toán của Viettel Telecom (MBCCS, thanh toán cước vận chuyển)</div>
+            <div class="project-meta">Java, Spring Boot, JavaScript, Redis, XML, JSON, Jira, Git | Quy mô nhóm: 7 - 20</div>
+            <ul class="project-bullets">
+                <li>Tăng hiệu năng truy vấn cho dữ liệu hồ sơ khách hàng và xác minh giấy tờ tần suất cao thông qua chiến lược cache Redis phù hợp.</li>
+                <li>Xây dựng batch xử lý nền cho các luồng nghiệp vụ quan trọng, phục vụ gửi hàng triệu SMS định kỳ về cước vận chuyển và phí dịch vụ.</li>
+                <li>Phát triển các phương thức thanh toán online an toàn cho hàng triệu khách hàng viễn thông qua thẻ cào và ví điện tử.</li>
+                <li>Lập trình thuật toán định vị theo tọa độ để tính khoảng cách chính xác tới cửa hàng Viettel gần nhất trên bản đồ số.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="company-block">
+        <div class="company-header clearfix">
+            <span class="company-name">IIT</span>
+            <span class="company-duration">05/2018 - 10/2018</span>
+        </div>
+        <div class="project-block">
+            <div class="project-title">Nền tảng đặt tour và marketing</div>
+            <div class="project-meta">C#, SQL Server, Visual Studio | Quy mô nhóm: 5</div>
+            <ul class="project-bullets">
+                <li>Phát triển các chức năng cốt lõi cho nghiệp vụ đặt tour và module quản lý nội dung media như ảnh, video.</li>
+                <li>Xây dựng công cụ báo cáo dữ liệu, xuất bảng biểu rõ ràng phục vụ đánh giá hiệu quả cho cấp quản lý.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section-title">Học vấn</div>
+    <div class="edu-block">
+        <div class="edu-school">Học viện Kỹ thuật Quân sự (MTA)</div>
+        <div class="edu-meta"><strong>Bằng cấp:</strong> Kỹ sư Công nghệ Phần mềm (Chương trình kỹ sư 5 năm) | 2015 - 2020</div>
+        <div class="edu-meta"><strong>GPA:</strong> 3.06 / 4.0 (Xếp loại Khá)</div>
+        <div class="edu-meta"><strong>Môn học chính:</strong> Cấu trúc dữ liệu & Giải thuật, Hệ quản trị cơ sở dữ liệu, Công nghệ phần mềm nâng cao</div>
+    </div>
+</div>
+
+</body>
+</html>
