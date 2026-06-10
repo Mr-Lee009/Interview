@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saga Pattern: Orchestration (Tập trung)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f8fafc; color: #1e293b; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 900px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #0f172a; margin-top: 0; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        button { padding: 10px 15px; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-success { background: #10b981; } .btn-fail { background: #ef4444; }
+        
+        .network { position: relative; width: 100%; height: 350px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .lines line { stroke: #cbd5e1; stroke-width: 2; }
+        
+        .node { position: absolute; background: white; border: 2px solid; border-radius: 8px; padding: 12px; text-align: center; transform: translate(-50%, -50%); width: 160px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; z-index: 2;}
+        .node h4 { margin: 0 0 5px 0; font-size: 14px; }
+        .node p { margin: 0; font-size: 11px; color: #64748b; }
+        .node.active { transform: translate(-50%, -50%) scale(1.08); }
+
+        #orchestrator { top: 80px; left: 50%; border-color: #8b5cf6; background: #faf5ff; }
+        #account { top: 270px; left: 25%; border-color: #3b82f6; }
+        #ledger { top: 270px; left: 75%; border-color: #10b981; }
+
+        .packet { position: absolute; z-index: 3; padding: 5px 10px; color: white; font-size: 11px; font-weight: bold; border-radius: 12px; transform: translate(-50%, -50%); opacity: 0; transition: top 1s, left 1s; white-space: nowrap; }
+
+        .system-log { background: #0f172a; color: #e2e8f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 13px; line-height: 1.5; }
+        .log-success { color: #34d399; } .log-error { color: #f87171; } .log-info { color: #38bdf8; } .log-cmd { color: #fcd34d; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Mô phỏng Saga: Orchestration (Nhạc trưởng chỉ huy)</h2>
+    <div class="controls">
+        <button class="btn-success" id="btn-ok" onclick="runSim('ok')">Giao dịch Thành công</button>
+        <button class="btn-fail" id="btn-err" onclick="runSim('err')">Giao dịch Lỗi (Bù trừ)</button>
+    </div>
+    <div class="network">
+        <svg class="lines" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;">
+            <line x1="50%" y1="80" x2="25%" y2="270" />
+            <line x1="50%" y1="80" x2="75%" y2="270" />
+        </svg>
+        <div class="node" id="orchestrator"><h4>🎼 Saga Orchestrator</h4><p>Điều phối trung tâm</p></div>
+        <div class="node" id="account"><h4>🏦 Account Service</h4><p>Trừ / Hoàn tiền</p></div>
+        <div class="node" id="ledger"><h4>🗄️ Ledger Service</h4><p>Cộng tiền</p></div>
+        <div class="packet" id="packet">Command</div>
+    </div>
+    <h3>System Log</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+    const nodes = { orc: document.getElementById('orchestrator'), acc: document.getElementById('account'), ldg: document.getElementById('ledger') };
+    
+    function log(text, type='info') {
+        document.getElementById('logContainer').innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+        document.getElementById('logContainer').scrollTop = document.getElementById('logContainer').scrollHeight;
+    }
+
+    function flash(nodeKey, color) {
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        setTimeout(() => { nodes[nodeKey].classList.remove('active'); nodes[nodeKey].style.boxShadow = 'none'; }, 1000);
+    }
+
+    async function move(startT, startL, endT, endL, text, color) {
+        const pkt = document.getElementById('packet');
+        pkt.innerText = text; pkt.style.background = color; pkt.style.boxShadow = `0 0 10px ${color}`;
+        pkt.style.transition = 'none'; pkt.style.top = startT; pkt.style.left = startL; pkt.style.opacity = '1';
+        await delay(50);
+        pkt.style.transition = 'top 1s ease-in-out, left 1s ease-in-out'; pkt.style.top = endT; pkt.style.left = endL;
+        await delay(1000); pkt.style.opacity = '0';
+    }
+
+    async function runSim(type) {
+        document.getElementById('btn-ok').disabled = true; document.getElementById('btn-err').disabled = true;
+        document.getElementById('logContainer').innerHTML = '';
+
+        log('ORCHESTRATOR: Nhận request chuyển 500k. Khởi tạo State Machine.', 'cmd');
+        flash('orc', '#8b5cf6'); await delay(800);
+        
+        log('ORCHESTRATOR -> ACCOUNT: Lệnh Trừ 500k (DeductCommand)', 'info');
+        await move('80px', '50%', '270px', '25%', 'Cmd: Deduct', '#3b82f6');
+        flash('acc', '#3b82f6'); await delay(500);
+
+        log('ACCOUNT -> ORCHESTRATOR: Đã trừ tiền thành công (Reply: OK)', 'success');
+        await move('270px', '25%', '80px', '50%', 'Reply: OK', '#10b981');
+        flash('orc', '#8b5cf6'); await delay(800);
+
+        log('ORCHESTRATOR -> LEDGER: Lệnh Cộng 500k (AddCommand)', 'info');
+        await move('80px', '50%', '270px', '75%', 'Cmd: Add', '#3b82f6');
+        flash('ldg', type === 'ok' ? '#10b981' : '#ef4444'); await delay(500);
+
+        if(type === 'ok') {
+            log('LEDGER -> ORCHESTRATOR: Đã cộng tiền thành công (Reply: OK)', 'success');
+            await move('270px', '75%', '80px', '50%', 'Reply: OK', '#10b981');
+            flash('orc', '#10b981');
+            log('✅ ORCHESTRATOR: Đóng State Machine. GIAO DỊCH HOÀN TẤT!', 'success');
+        } else {
+            log('LEDGER -> ORCHESTRATOR: LỖI! Tài khoản nhận không hợp lệ (Reply: FAIL)', 'error');
+            await move('270px', '75%', '80px', '50%', 'Reply: FAIL', '#ef4444');
+            flash('orc', '#ef4444'); await delay(800);
+            
+            log('ORCHESTRATOR: Giao dịch thất bại. Kích hoạt quy trình BÙ TRỪ.', 'error');
+            log('ORCHESTRATOR -> ACCOUNT: Lệnh Hoàn tiền (RefundCommand)', 'cmd');
+            await move('80px', '50%', '270px', '25%', 'Cmd: Refund', '#ef4444');
+            flash('acc', '#ef4444'); await delay(500);
+
+            log('ACCOUNT -> ORCHESTRATOR: Đã hoàn 500k thành công (Reply: OK)', 'success');
+            await move('270px', '25%', '80px', '50%', 'Reply: OK', '#10b981');
+            flash('orc', '#ef4444');
+            log('❌ ORCHESTRATOR: Đã dọn dẹp xong. GIAO DỊCH ĐÃ BỊ ROLLBACK!', 'error');
+        }
+        document.getElementById('btn-ok').disabled = false; document.getElementById('btn-err').disabled = false;
+    }
+</script>
+</body>
+</html>

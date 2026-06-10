@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saga Pattern: Order Workflow</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f8fafc; color: #1e293b; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 980px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: #64748b; font-size: 14px; margin: 0 0 20px; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 10px 15px; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-success { background: #10b981; }
+        .btn-fail { background: #ef4444; }
+        .btn-reset { background: #64748b; }
+
+        .network { position: relative; width: 100%; height: 420px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .lines line { stroke: #cbd5e1; stroke-width: 2; }
+
+        .node { position: absolute; background: white; border: 2px solid; border-radius: 8px; padding: 12px; text-align: center; transform: translate(-50%, -50%); width: 160px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; z-index: 2; }
+        .node h4 { margin: 0 0 5px 0; font-size: 14px; }
+        .node p { margin: 0; font-size: 11px; color: #64748b; line-height: 1.4; }
+        .node.active { transform: translate(-50%, -50%) scale(1.08); }
+
+        #orchestrator { top: 80px; left: 50%; border-color: #8b5cf6; background: #faf5ff; }
+        #order { top: 270px; left: 12%; border-color: #3b82f6; }
+        #inventory { top: 270px; left: 31%; border-color: #14b8a6; }
+        #payment { top: 270px; left: 50%; border-color: #f59e0b; background: #fff7ed; }
+        #shipping { top: 270px; left: 69%; border-color: #ec4899; }
+        #notify { top: 270px; left: 88%; border-color: #06b6d4; }
+
+        .packet { position: absolute; z-index: 3; padding: 5px 10px; color: white; font-size: 11px; font-weight: bold; border-radius: 12px; transform: translate(-50%, -50%); opacity: 0; transition: top 1s, left 1s; white-space: nowrap; }
+
+        .status-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+        .status-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+        .status-card strong { display: block; font-size: 13px; margin-bottom: 6px; }
+        .status-value { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; background: #e2e8f0; color: #334155; }
+        .status-run { background: #dbeafe; color: #1d4ed8; }
+        .status-ok { background: #dcfce7; color: #166534; }
+        .status-err { background: #fee2e2; color: #991b1b; }
+
+        .system-log { background: #0f172a; color: #e2e8f0; padding: 15px; border-radius: 8px; height: 230px; overflow-y: auto; font-family: monospace; font-size: 13px; line-height: 1.5; }
+        .log-success { color: #34d399; }
+        .log-error { color: #f87171; }
+        .log-info { color: #38bdf8; }
+        .log-cmd { color: #fcd34d; }
+
+        @media (max-width: 900px) {
+            .network { height: 760px; }
+            .status-board { grid-template-columns: repeat(2, 1fr); }
+            #orchestrator { top: 80px; left: 50%; }
+            #order, #inventory, #payment, #shipping, #notify { left: 50%; width: 220px; }
+            #order { top: 200px; }
+            #inventory { top: 310px; }
+            #payment { top: 420px; }
+            #shipping { top: 530px; }
+            #notify { top: 640px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Mô phỏng Saga: Order - Inventory - Payment - Shipping</h2>
+    <p class="subtitle">Ví dụ thực tế theo kiểu Orchestration: tạo đơn, giữ hàng, thu tiền, tạo vận đơn, gửi thông báo.</p>
+
+    <div class="controls">
+        <button class="btn-success" id="btn-ok" onclick="runSim('ok')">Luồng Thành công</button>
+        <button class="btn-fail" id="btn-err" onclick="runSim('err')">Lỗi ở Shipping</button>
+        <button class="btn-reset" onclick="resetBoard()">Reset</button>
+    </div>
+
+    <div class="network">
+        <svg class="lines" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;">
+            <line x1="50%" y1="80" x2="12%" y2="270" />
+            <line x1="50%" y1="80" x2="31%" y2="270" />
+            <line x1="50%" y1="80" x2="50%" y2="270" />
+            <line x1="50%" y1="80" x2="69%" y2="270" />
+            <line x1="50%" y1="80" x2="88%" y2="270" />
+        </svg>
+
+        <div class="node" id="orchestrator"><h4>Saga Orchestrator</h4><p>Điều phối trung tâm</p></div>
+        <div class="node" id="order"><h4>Order Service</h4><p>Tạo và xác nhận đơn</p></div>
+        <div class="node" id="inventory"><h4>Inventory Service</h4><p>Giữ hoặc trả tồn kho</p></div>
+        <div class="node" id="payment"><h4>Payment Service</h4><p>Thu tiền hoặc hoàn tiền</p></div>
+        <div class="node" id="shipping"><h4>Shipping Service</h4><p>Tạo shipment draft</p></div>
+        <div class="node" id="notify"><h4>Notification Service</h4><p>Gửi xác nhận đơn</p></div>
+        <div class="packet" id="packet">Command</div>
+    </div>
+
+    <div class="status-board">
+        <div class="status-card"><strong>Order</strong><span class="status-value" id="status-order">WAITING</span></div>
+        <div class="status-card"><strong>Inventory</strong><span class="status-value" id="status-inventory">WAITING</span></div>
+        <div class="status-card"><strong>Payment</strong><span class="status-value" id="status-payment">WAITING</span></div>
+        <div class="status-card"><strong>Shipping</strong><span class="status-value" id="status-shipping">WAITING</span></div>
+        <div class="status-card"><strong>Saga</strong><span class="status-value" id="status-saga">IDLE</span></div>
+    </div>
+
+    <h3>System Log</h3>
+    <div class="system-log" id="logContainer"></div>
+</div>
+
+<script>
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+    const nodes = {
+        orc: document.getElementById('orchestrator'),
+        ord: document.getElementById('order'),
+        inv: document.getElementById('inventory'),
+        pay: document.getElementById('payment'),
+        shp: document.getElementById('shipping'),
+        ntf: document.getElementById('notify')
+    };
+
+    const statusEls = {
+        order: document.getElementById('status-order'),
+        inventory: document.getElementById('status-inventory'),
+        payment: document.getElementById('status-payment'),
+        shipping: document.getElementById('status-shipping'),
+        saga: document.getElementById('status-saga')
+    };
+
+    const positions = {
+        orc: { top: '80px', left: '50%' },
+        ord: { top: '270px', left: '12%' },
+        inv: { top: '270px', left: '31%' },
+        pay: { top: '270px', left: '50%' },
+        shp: { top: '270px', left: '69%' },
+        ntf: { top: '270px', left: '88%' }
+    };
+
+    function log(text, type='info') {
+        const box = document.getElementById('logContainer');
+        box.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function flash(nodeKey, color) {
+        nodes[nodeKey].style.boxShadow = `0 0 15px ${color}`;
+        nodes[nodeKey].classList.add('active');
+        setTimeout(() => {
+            nodes[nodeKey].classList.remove('active');
+            nodes[nodeKey].style.boxShadow = 'none';
+        }, 1000);
+    }
+
+    function setStatus(key, text, css='') {
+        const el = statusEls[key];
+        el.textContent = text;
+        el.className = 'status-value';
+        if (css) el.classList.add(css);
+    }
+
+    async function move(from, to, text, color) {
+        const pkt = document.getElementById('packet');
+        pkt.innerText = text;
+        pkt.style.background = color;
+        pkt.style.boxShadow = `0 0 10px ${color}`;
+        pkt.style.transition = 'none';
+        pkt.style.top = positions[from].top;
+        pkt.style.left = positions[from].left;
+        pkt.style.opacity = '1';
+        await delay(50);
+        pkt.style.transition = 'top 1s ease-in-out, left 1s ease-in-out';
+        pkt.style.top = positions[to].top;
+        pkt.style.left = positions[to].left;
+        await delay(1000);
+        pkt.style.opacity = '0';
+    }
+
+    function resetBoard() {
+        document.getElementById('logContainer').innerHTML = '';
+        setStatus('order', 'WAITING');
+        setStatus('inventory', 'WAITING');
+        setStatus('payment', 'WAITING');
+        setStatus('shipping', 'WAITING');
+        setStatus('saga', 'IDLE');
+        document.getElementById('packet').style.opacity = '0';
+    }
+
+    async function runSim(type) {
+        document.getElementById('btn-ok').disabled = true;
+        document.getElementById('btn-err').disabled = true;
+        resetBoard();
+
+        setStatus('saga', 'RUNNING', 'status-run');
+        log('ORCHESTRATOR: Nhận request đặt đơn hàng ORD-20260608-001.', 'cmd');
+        flash('orc', '#8b5cf6'); await delay(700);
+
+        log('ORCHESTRATOR -> ORDER: Tạo đơn hàng ở trạng thái PENDING.', 'info');
+        await move('orc', 'ord', 'Cmd: CreateOrder', '#3b82f6');
+        flash('ord', '#3b82f6');
+        setStatus('order', 'PENDING', 'status-run');
+        await delay(400);
+
+        log('ORDER -> ORCHESTRATOR: Đã tạo đơn thành công.', 'success');
+        await move('ord', 'orc', 'Reply: OK', '#10b981');
+        flash('orc', '#8b5cf6'); await delay(500);
+
+        log('ORCHESTRATOR -> INVENTORY: Giữ tồn kho cho đơn hàng.', 'info');
+        await move('orc', 'inv', 'Cmd: ReserveStock', '#3b82f6');
+        flash('inv', '#14b8a6');
+        setStatus('inventory', 'RESERVED', 'status-run');
+        await delay(400);
+
+        log('INVENTORY -> ORCHESTRATOR: Giữ hàng thành công.', 'success');
+        await move('inv', 'orc', 'Reply: OK', '#10b981');
+        flash('orc', '#8b5cf6'); await delay(500);
+
+        log('ORCHESTRATOR -> PAYMENT: Thu tiền đơn hàng.', 'info');
+        await move('orc', 'pay', 'Cmd: Capture', '#3b82f6');
+        flash('pay', '#f59e0b');
+        setStatus('payment', 'CAPTURED', 'status-run');
+        await delay(400);
+
+        log('PAYMENT -> ORCHESTRATOR: Thanh toán thành công.', 'success');
+        await move('pay', 'orc', 'Reply: OK', '#10b981');
+        flash('orc', '#8b5cf6'); await delay(500);
+
+        log('ORCHESTRATOR -> SHIPPING: Tạo shipment draft.', 'info');
+        await move('orc', 'shp', type === 'ok' ? 'Cmd: CreateShip' : 'Cmd: CreateShip', '#3b82f6');
+        flash('shp', type === 'ok' ? '#10b981' : '#ef4444');
+        await delay(400);
+
+        if (type === 'ok') {
+            setStatus('shipping', 'CREATED', 'status-ok');
+            log('SHIPPING -> ORCHESTRATOR: Tạo shipment thành công.', 'success');
+            await move('shp', 'orc', 'Reply: OK', '#10b981');
+            flash('orc', '#10b981'); await delay(500);
+
+            log('ORCHESTRATOR -> ORDER: Xác nhận đơn hàng.', 'cmd');
+            await move('orc', 'ord', 'Cmd: ConfirmOrder', '#3b82f6');
+            flash('ord', '#10b981');
+            setStatus('order', 'CONFIRMED', 'status-ok');
+            await delay(400);
+
+            log('ORCHESTRATOR -> NOTIFY: Gửi email xác nhận.', 'info');
+            await move('orc', 'ntf', 'Cmd: Notify', '#3b82f6');
+            flash('ntf', '#06b6d4');
+            await delay(400);
+
+            setStatus('inventory', 'RESERVED', 'status-ok');
+            setStatus('payment', 'CAPTURED', 'status-ok');
+            setStatus('saga', 'COMPLETED', 'status-ok');
+            log('ORCHESTRATOR: Saga hoàn tất thành công.', 'success');
+        } else {
+            setStatus('shipping', 'FAILED', 'status-err');
+            log('SHIPPING -> ORCHESTRATOR: Lỗi tạo shipment do provider timeout.', 'error');
+            await move('shp', 'orc', 'Reply: FAIL', '#ef4444');
+            flash('orc', '#ef4444'); await delay(600);
+
+            setStatus('saga', 'COMPENSATING', 'status-err');
+            log('ORCHESTRATOR: Kích hoạt luồng bù trừ.', 'error');
+
+            log('ORCHESTRATOR -> PAYMENT: Hoàn tiền.', 'cmd');
+            await move('orc', 'pay', 'Cmd: Refund', '#ef4444');
+            flash('pay', '#ef4444');
+            setStatus('payment', 'REFUNDED', 'status-err');
+            await delay(400);
+
+            log('PAYMENT -> ORCHESTRATOR: Hoàn tiền thành công.', 'success');
+            await move('pay', 'orc', 'Reply: OK', '#10b981');
+            flash('orc', '#ef4444'); await delay(500);
+
+            log('ORCHESTRATOR -> INVENTORY: Trả lại tồn kho.', 'cmd');
+            await move('orc', 'inv', 'Cmd: ReleaseStock', '#ef4444');
+            flash('inv', '#ef4444');
+            setStatus('inventory', 'RELEASED', 'status-err');
+            await delay(400);
+
+            log('INVENTORY -> ORCHESTRATOR: Đã trả lại tồn kho.', 'success');
+            await move('inv', 'orc', 'Reply: OK', '#10b981');
+            flash('orc', '#ef4444'); await delay(500);
+
+            log('ORCHESTRATOR -> ORDER: Hủy đơn hàng.', 'cmd');
+            await move('orc', 'ord', 'Cmd: CancelOrder', '#ef4444');
+            flash('ord', '#ef4444');
+            setStatus('order', 'CANCELLED', 'status-err');
+            await delay(400);
+
+            setStatus('saga', 'COMPENSATED', 'status-err');
+            log('ORCHESTRATOR: Saga đã bù trừ xong.', 'error');
+        }
+
+        document.getElementById('btn-ok').disabled = false;
+        document.getElementById('btn-err').disabled = false;
+    }
+
+    resetBoard();
+</script>
+</body>
+</html>

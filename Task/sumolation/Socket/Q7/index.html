@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Authentication Simulation</title>
+    <style>
+        :root {
+            --bg: #edf4ff;
+            --panel: #ffffff;
+            --text: #10243e;
+            --muted: #5f7187;
+            --line: #cbd5e1;
+            --primary: #2563eb;
+            --ok: #16a34a;
+            --warn: #d97706;
+            --err: #dc2626;
+            --cookie: #7c3aed;
+            --jwt: #0891b2;
+            --header: #ea580c;
+            --query: #be185d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, #eef5ff 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid #dbe5f0;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin: 0 auto 20px;
+            text-align: center;
+            max-width: 860px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .selector {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .auth-btn {
+            border: 1px solid #dbe5f0;
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .auth-btn strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .auth-btn span {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .auth-btn.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, white);
+            background: color-mix(in srgb, var(--accent) 8%, white);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .run-btn { background: var(--primary); }
+        .fail-btn { background: var(--err); }
+        .reset-btn { background: #64748b; }
+
+        .simulator {
+            position: relative;
+            height: 360px;
+            border: 1px solid #dde7f1;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 30%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            overflow: hidden;
+        }
+
+        .simulator svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .simulator line {
+            stroke: var(--line);
+            stroke-width: 2;
+        }
+
+        .node {
+            position: absolute;
+            width: 210px;
+            transform: translate(-50%, -50%);
+            background: var(--panel);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            transition: 0.25s ease;
+            z-index: 2;
+        }
+
+        .node h2 {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+
+        .node p {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .node.active {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        #client {
+            top: 180px;
+            left: 18%;
+            border-color: var(--primary);
+        }
+
+        #handshake {
+            top: 180px;
+            left: 50%;
+            border-color: #0f766e;
+            background: #f0fdfa;
+        }
+
+        #server {
+            top: 180px;
+            left: 82%;
+            border-color: #7c3aed;
+            background: #faf5ff;
+        }
+
+        .packet {
+            position: absolute;
+            z-index: 3;
+            min-width: 130px;
+            transform: translate(-50%, -50%);
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            opacity: 0;
+            white-space: nowrap;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .panel {
+            background: #fff;
+            border: 1px solid #dde7f1;
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .panel h3 {
+            margin: 0 0 10px;
+            font-size: 17px;
+        }
+
+        .panel ul {
+            margin: 0;
+            padding-left: 18px;
+            color: #334155;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .code {
+            background: #0f172a;
+            color: #dbeafe;
+            border-radius: 12px;
+            padding: 14px;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .badge {
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 5px 10px;
+        }
+
+        .ok { background: #dcfce7; color: #166534; }
+        .warn { background: #fef3c7; color: #92400e; }
+        .err { background: #fee2e2; color: #991b1b; }
+
+        .log {
+            margin-top: 18px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            height: 220px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .log-info { color: #93c5fd; }
+        .log-ok { color: #86efac; }
+        .log-warn { color: #fde68a; }
+        .log-err { color: #fca5a5; }
+
+        @media (max-width: 920px) {
+            .selector, .details {
+                grid-template-columns: 1fr;
+            }
+
+            .simulator {
+                height: 520px;
+            }
+
+            #client, #handshake, #server {
+                left: 50%;
+            }
+
+            #client { top: 105px; }
+            #handshake { top: 255px; }
+            #server { top: 405px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Mô phỏng xác thực WebSocket</h1>
+    <p class="subtitle">
+        Mỗi loại xác thực đều đi qua cùng một ý tưởng: client gửi thông tin xác thực trong lúc bắt tay,
+        server kiểm tra rồi quyết định có cho phép `Upgrade` sang WebSocket hay không.
+    </p>
+
+    <div class="selector" id="selector"></div>
+
+    <div class="controls">
+        <button class="action-btn run-btn" id="btn-success">Chạy hợp lệ</button>
+        <button class="action-btn fail-btn" id="btn-fail">Chạy token sai</button>
+        <button class="action-btn reset-btn" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="simulator">
+        <svg viewBox="0 0 1000 360" preserveAspectRatio="none">
+            <line x1="180" y1="180" x2="500" y2="180"></line>
+            <line x1="500" y1="180" x2="820" y2="180"></line>
+        </svg>
+
+        <div class="node" id="client">
+            <h2>Client</h2>
+            <p>Browser, SPA, mobile app hoặc desktop app mở kết nối WebSocket.</p>
+        </div>
+
+        <div class="node" id="handshake">
+            <h2>Handshake</h2>
+            <p>Yêu cầu ban đầu đi qua HTTP để xin `Upgrade: websocket`.</p>
+        </div>
+
+        <div class="node" id="server">
+            <h2>Server</h2>
+            <p>Kiểm tra cookie hoặc token rồi quyết định cho phép hay từ chối kết nối.</p>
+        </div>
+
+        <div class="packet" id="packet"></div>
+    </div>
+
+    <div class="details">
+        <div class="panel">
+            <h3 id="detail-title">Session Cookie</h3>
+            <ul id="detail-points"></ul>
+            <div class="badges" id="badges"></div>
+        </div>
+
+        <div class="panel">
+            <h3>Ví dụ request</h3>
+            <div class="code" id="code-sample"></div>
+        </div>
+    </div>
+
+    <div class="log" id="logBox"></div>
+</div>
+
+<script>
+    const methods = [
+        {
+            id: "cookie",
+            name: "Session Cookie",
+            accent: "#7c3aed",
+            summary: "Phù hợp web truyền thống dùng session.",
+            points: [
+                "User login trước bằng HTTP rồi nhận cookie như JSESSIONID.",
+                "Khi mở WebSocket, browser tự gửi cookie trong handshake.",
+                "Server đọc session từ cookie để biết user là ai.",
+                "Dễ làm với Spring Security session-based nhưng scale nhiều node cần session store."
+            ],
+            badges: [
+                ["Phù hợp browser", "ok"],
+                ["Scale trung bình", "warn"],
+                ["Stateful", "warn"]
+            ],
+            request: `GET /ws/chat HTTP/1.1
+Host: app.company.com
+Upgrade: websocket
+Connection: Upgrade
+Cookie: JSESSIONID=abc123xyz`,
+            validLabel: "Cookie: JSESSIONID",
+            invalidLabel: "Cookie hết hạn",
+            successLogs: [
+                "CLIENT: Mở WebSocket sau khi đã login bằng form HTTP.",
+                "HANDSHAKE: Trình duyệt tự đính kèm cookie JSESSIONID.",
+                "SERVER: Tìm thấy session hợp lệ của user duc.le.",
+                "SERVER: Chấp nhận upgrade sang WebSocket."
+            ],
+            failLogs: [
+                "CLIENT: Mở WebSocket nhưng cookie đã hết hạn.",
+                "HANDSHAKE: Cookie vẫn được gửi lên cùng request.",
+                "SERVER: Không tìm thấy session hợp lệ hoặc session đã timeout.",
+                "SERVER: Từ chối mở WebSocket, yêu cầu login lại."
+            ]
+        },
+        {
+            id: "jwt",
+            name: "JWT Token",
+            accent: "#0891b2",
+            summary: "Phù hợp SPA, mobile app và microservices.",
+            points: [
+                "User login trước qua HTTP rồi nhận JWT.",
+                "Client gửi JWT trong lúc handshake, thường qua query param hoặc header tùy client.",
+                "Server verify chữ ký, thời hạn và role trong token.",
+                "Stateless, dễ scale ngang nhưng phải quản lý expiration và revoke."
+            ],
+            badges: [
+                ["Stateless", "ok"],
+                ["Scale tốt", "ok"],
+                ["Cần verify token", "warn"]
+            ],
+            request: `GET /ws/chat?token=eyJhbGciOi... HTTP/1.1
+Host: api.company.com
+Upgrade: websocket
+Connection: Upgrade`,
+            validLabel: "JWT hợp lệ",
+            invalidLabel: "JWT sai/hết hạn",
+            successLogs: [
+                "CLIENT: Gửi JWT khi mở WebSocket.",
+                "HANDSHAKE: Request chứa token của user duc.le.",
+                "SERVER: Verify chữ ký JWT thành công.",
+                "SERVER: Token còn hạn và role hợp lệ, cho phép mở kết nối."
+            ],
+            failLogs: [
+                "CLIENT: Gửi JWT nhưng token đã hết hạn hoặc sai chữ ký.",
+                "HANDSHAKE: Request vẫn đến server bình thường.",
+                "SERVER: Verify JWT thất bại.",
+                "SERVER: Từ chối upgrade, trả về unauthorized."
+            ]
+        },
+        {
+            id: "header",
+            name: "Header Token",
+            accent: "#ea580c",
+            summary: "Sạch và rõ ràng nhưng browser native thường hạn chế.",
+            points: [
+                "Client gửi access token trong header Authorization của handshake.",
+                "Rất hợp với mobile app, desktop app hoặc backend-to-backend.",
+                "Server tái sử dụng logic xác thực giống REST API.",
+                "Browser native new WebSocket() thường không set Authorization header trực tiếp được."
+            ],
+            badges: [
+                ["Dễ reuse REST auth", "ok"],
+                ["Hạn chế browser", "err"],
+                ["Phù hợp mobile/backend", "ok"]
+            ],
+            request: `GET /ws/chat HTTP/1.1
+Host: gateway.company.com
+Upgrade: websocket
+Connection: Upgrade
+Authorization: Bearer eyJhbGciOi...`,
+            validLabel: "Header: Bearer",
+            invalidLabel: "Header token sai",
+            successLogs: [
+                "CLIENT: Mobile app gửi Authorization header khi mở WebSocket.",
+                "HANDSHAKE: Token đi kèm trong header Bearer.",
+                "SERVER: Reuse auth filter để xác thực token.",
+                "SERVER: Token hợp lệ, cho phép upgrade."
+            ],
+            failLogs: [
+                "CLIENT: Gửi Authorization header nhưng token sai.",
+                "HANDSHAKE: Request tới được server.",
+                "SERVER: Header có token nhưng verify không thành công.",
+                "SERVER: Từ chối kết nối WebSocket."
+            ]
+        },
+        {
+            id: "query",
+            name: "Query Param Token",
+            accent: "#be185d",
+            summary: "Dễ dùng trong browser nhưng cần cẩn thận vì token có thể lộ qua URL.",
+            points: [
+                "Client gắn token trực tiếp trên URL của WebSocket.",
+                "Server đọc token từ query param rồi xác thực.",
+                "Cách này dễ làm với browser khi không set được custom header.",
+                "Phải dùng wss://, token ngắn hạn và tránh log full URL."
+            ],
+            badges: [
+                ["Rất dễ triển khai", "ok"],
+                ["Nguy cơ lộ URL", "err"],
+                ["Phù hợp demo/browser", "warn"]
+            ],
+            request: `GET /ws/chat?token=abc123 HTTP/1.1
+Host: chat.company.com
+Upgrade: websocket
+Connection: Upgrade`,
+            validLabel: "Query token",
+            invalidLabel: "Query token sai",
+            successLogs: [
+                "CLIENT: Browser mở WebSocket với token ở query param.",
+                "HANDSHAKE: URL chứa token ngay trong request ban đầu.",
+                "SERVER: Đọc token từ query param và verify thành công.",
+                "SERVER: Chấp nhận mở kết nối WebSocket."
+            ],
+            failLogs: [
+                "CLIENT: Browser gửi token qua query param nhưng token không hợp lệ.",
+                "HANDSHAKE: URL vẫn tới được server.",
+                "SERVER: Token từ query param bị từ chối.",
+                "SERVER: Kết nối không được upgrade."
+            ]
+        }
+    ];
+
+    let current = methods[0];
+
+    const selector = document.getElementById("selector");
+    const pointsEl = document.getElementById("detail-points");
+    const badgesEl = document.getElementById("badges");
+    const titleEl = document.getElementById("detail-title");
+    const codeEl = document.getElementById("code-sample");
+    const logBox = document.getElementById("logBox");
+    const packet = document.getElementById("packet");
+
+    const positions = {
+        client: { top: "180px", left: "18%" },
+        handshake: { top: "180px", left: "50%" },
+        server: { top: "180px", left: "82%" }
+    };
+
+    const nodes = {
+        client: document.getElementById("client"),
+        handshake: document.getElementById("handshake"),
+        server: document.getElementById("server")
+    };
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    function renderSelector() {
+        selector.innerHTML = methods.map((method) => `
+            <button class="auth-btn ${method.id === current.id ? "active" : ""}" data-id="${method.id}" style="--accent:${method.accent}">
+                <strong>${method.name}</strong>
+                <span>${method.summary}</span>
+            </button>
+        `).join("");
+
+        selector.querySelectorAll(".auth-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                current = methods.find((item) => item.id === btn.dataset.id);
+                resetVisuals();
+                renderAll();
+            });
+        });
+    }
+
+    function renderDetails() {
+        titleEl.textContent = current.name;
+        pointsEl.innerHTML = current.points.map((point) => `<li>${point}</li>`).join("");
+        badgesEl.innerHTML = current.badges.map(([text, type]) => `<span class="badge ${type}">${text}</span>`).join("");
+        codeEl.textContent = current.request;
+    }
+
+    function renderAll() {
+        renderSelector();
+        renderDetails();
+    }
+
+    function resetVisuals() {
+        logBox.innerHTML = "";
+        packet.style.opacity = "0";
+        Object.values(nodes).forEach((node) => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        });
+    }
+
+    function log(text, type = "info") {
+        logBox.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function glow(nodeKey, color) {
+        const node = nodes[nodeKey];
+        node.classList.add("active");
+        node.style.boxShadow = `0 0 0 4px ${color}22, 0 14px 30px rgba(15, 23, 42, 0.14)`;
+        setTimeout(() => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        }, 850);
+    }
+
+    async function move(from, to, text, color) {
+        packet.textContent = text;
+        packet.style.background = color;
+        packet.style.opacity = "1";
+        packet.style.transition = "none";
+        packet.style.top = positions[from].top;
+        packet.style.left = positions[from].left;
+        await wait(50);
+        packet.style.transition = "top 0.95s ease, left 0.95s ease, opacity 0.2s ease";
+        packet.style.top = positions[to].top;
+        packet.style.left = positions[to].left;
+        await wait(950);
+        packet.style.opacity = "0";
+    }
+
+    async function runScenario(ok) {
+        resetVisuals();
+        const logs = ok ? current.successLogs : current.failLogs;
+        const sendLabel = ok ? current.validLabel : current.invalidLabel;
+
+        log(logs[0], "info");
+        glow("client", current.accent);
+        await wait(700);
+
+        log(logs[1], "warn");
+        await move("client", "handshake", sendLabel, current.accent);
+        glow("handshake", "#0f766e");
+        await wait(350);
+
+        log(logs[2], ok ? "ok" : "err");
+        await move("handshake", "server", "Verify", ok ? current.accent : "#dc2626");
+        glow("server", ok ? "#16a34a" : "#dc2626");
+        await wait(350);
+
+        log(logs[3], ok ? "ok" : "err");
+        await move("server", "handshake", ok ? "101 Upgrade" : "401 Reject", ok ? "#16a34a" : "#dc2626");
+        glow("handshake", ok ? "#16a34a" : "#dc2626");
+        await wait(300);
+    }
+
+    document.getElementById("btn-success").addEventListener("click", () => runScenario(true));
+    document.getElementById("btn-fail").addEventListener("click", () => runScenario(false));
+    document.getElementById("btn-reset").addEventListener("click", resetVisuals);
+
+    renderAll();
+    log("Chọn một kiểu xác thực rồi bấm 'Chạy hợp lệ' hoặc 'Chạy token sai' để xem luồng mô phỏng.", "info");
+</script>
+</body>
+</html>

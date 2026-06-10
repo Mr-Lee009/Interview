@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Reconnect Simulation</title>
+    <style>
+        :root {
+            --bg: #eef5ff;
+            --panel: #ffffff;
+            --text: #10243e;
+            --muted: #60758b;
+            --line: #cbd5e1;
+            --primary: #2563eb;
+            --ok: #16a34a;
+            --err: #dc2626;
+            --warn: #d97706;
+            --store: #7c3aed;
+            --server: #0891b2;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.94);
+            border: 1px solid #dde7f1;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        .subtitle {
+            margin: 0 auto 20px;
+            max-width: 900px;
+            text-align: center;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .action-btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .bad-btn { background: var(--err); }
+        .good-btn { background: var(--ok); }
+        .reset-btn { background: #64748b; }
+
+        .simulator {
+            position: relative;
+            height: 420px;
+            border: 1px solid #dde7f1;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 30%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            overflow: hidden;
+        }
+
+        .simulator svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .simulator line {
+            stroke: var(--line);
+            stroke-width: 2;
+        }
+
+        .node {
+            position: absolute;
+            width: 210px;
+            transform: translate(-50%, -50%);
+            background: var(--panel);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            transition: 0.25s ease;
+            z-index: 2;
+        }
+
+        .node h2 {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+
+        .node p {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .node.active {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        #client { top: 300px; left: 18%; border-color: var(--primary); }
+        #server { top: 180px; left: 50%; border-color: var(--server); background: #ecfeff; }
+        #store { top: 300px; left: 82%; border-color: var(--store); background: #faf5ff; }
+
+        .packet {
+            position: absolute;
+            z-index: 3;
+            min-width: 140px;
+            transform: translate(-50%, -50%);
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            opacity: 0;
+            white-space: nowrap;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+        }
+
+        .status {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #dde7f1;
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        .state-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 13px;
+        }
+
+        .state-row:last-child { border-bottom: 0; }
+
+        .badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .badge.ok { background: #dcfce7; color: #166534; }
+        .badge.err { background: #fee2e2; color: #991b1b; }
+        .badge.warn { background: #fef3c7; color: #92400e; }
+
+        .log {
+            margin-top: 18px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .log-info { color: #93c5fd; }
+        .log-ok { color: #86efac; }
+        .log-err { color: #fca5a5; }
+        .log-warn { color: #fde68a; }
+
+        @media (max-width: 960px) {
+            .status { grid-template-columns: 1fr; }
+            .simulator { height: 640px; }
+            #server { top: 150px; left: 50%; }
+            #client { top: 350px; left: 50%; }
+            #store { top: 550px; left: 50%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Mô phỏng reconnect và đồng bộ message</h1>
+    <p class="subtitle">
+        WebSocket reconnect chỉ giúp mở lại kết nối. Nếu muốn không mất dữ liệu,
+        client phải báo mốc cuối cùng đã nhận và server phải replay phần còn thiếu từ nơi lưu message.
+    </p>
+
+    <div class="controls">
+        <button class="action-btn bad-btn" id="btn-no-sync">Reconnect nhưng không sync</button>
+        <button class="action-btn good-btn" id="btn-sync">Reconnect và sync đúng</button>
+        <button class="action-btn reset-btn" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="simulator">
+        <svg viewBox="0 0 1000 420" preserveAspectRatio="none">
+            <line x1="180" y1="300" x2="500" y2="180"></line>
+            <line x1="500" y1="180" x2="820" y2="300"></line>
+        </svg>
+
+        <div class="node" id="client">
+            <h2>Client</h2>
+            <p>Giữ `lastMessageId`, reconnect khi mất mạng và yêu cầu sync lại nếu cần.</p>
+        </div>
+
+        <div class="node" id="server">
+            <h2>WebSocket Server</h2>
+            <p>Nhận reconnect, kiểm tra mốc cuối cùng và quyết định có replay message hay không.</p>
+        </div>
+
+        <div class="node" id="store">
+            <h2>DB / Message Store</h2>
+            <p>Lưu các message quan trọng để có thể trả lại phần bị lỡ khi client reconnect.</p>
+        </div>
+
+        <div class="packet" id="packet"></div>
+    </div>
+
+    <div class="status">
+        <div class="card">
+            <h3>Trạng thái client</h3>
+            <div class="state-row"><span>Kết nối</span><span class="badge" id="state-conn">ONLINE</span></div>
+            <div class="state-row"><span>lastMessageId</span><span class="badge" id="state-last">150</span></div>
+            <div class="state-row"><span>Message thiếu</span><span class="badge" id="state-missed">NONE</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Message phát sinh khi offline</h3>
+            <div class="state-row"><span>151</span><span class="badge warn">Tạo mới</span></div>
+            <div class="state-row"><span>152</span><span class="badge warn">Tạo mới</span></div>
+            <div class="state-row"><span>153</span><span class="badge warn">Tạo mới</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Kết luận</h3>
+            <div class="state-row"><span>Không sync</span><span class="badge err">Dễ mất message</span></div>
+            <div class="state-row"><span>Sync theo mốc</span><span class="badge ok">Khôi phục đủ</span></div>
+            <div class="state-row"><span>Khuyến nghị</span><span class="badge warn">Dùng lastMessageId</span></div>
+        </div>
+    </div>
+
+    <div class="log" id="logBox"></div>
+</div>
+
+<script>
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const packet = document.getElementById("packet");
+    const logBox = document.getElementById("logBox");
+
+    const nodes = {
+        client: document.getElementById("client"),
+        server: document.getElementById("server"),
+        store: document.getElementById("store")
+    };
+
+    const states = {
+        conn: document.getElementById("state-conn"),
+        last: document.getElementById("state-last"),
+        missed: document.getElementById("state-missed")
+    };
+
+    const positions = {
+        client: { top: "300px", left: "18%" },
+        server: { top: "180px", left: "50%" },
+        store: { top: "300px", left: "82%" }
+    };
+
+    function setBadge(el, text, cls = "") {
+        el.textContent = text;
+        el.className = "badge";
+        if (cls) el.classList.add(cls);
+    }
+
+    function resetBoard() {
+        logBox.innerHTML = "";
+        packet.style.opacity = "0";
+        setBadge(states.conn, "ONLINE", "ok");
+        setBadge(states.last, "150");
+        setBadge(states.missed, "NONE");
+
+        Object.values(nodes).forEach((node) => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        });
+    }
+
+    function log(text, type = "info") {
+        logBox.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function glow(nodeKey, color) {
+        const node = nodes[nodeKey];
+        node.classList.add("active");
+        node.style.boxShadow = `0 0 0 4px ${color}22, 0 14px 30px rgba(15, 23, 42, 0.14)`;
+        setTimeout(() => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.08)";
+        }, 850);
+    }
+
+    async function move(from, to, text, color) {
+        packet.textContent = text;
+        packet.style.background = color;
+        packet.style.opacity = "1";
+        packet.style.transition = "none";
+        packet.style.top = positions[from].top;
+        packet.style.left = positions[from].left;
+        await wait(50);
+        packet.style.transition = "top 0.95s ease, left 0.95s ease, opacity 0.2s ease";
+        packet.style.top = positions[to].top;
+        packet.style.left = positions[to].left;
+        await wait(950);
+        packet.style.opacity = "0";
+    }
+
+    async function runNoSync() {
+        resetBoard();
+        log("CLIENT: Đang online và đã nhận tới messageId = 150.", "info");
+        glow("client", "#2563eb");
+        await wait(500);
+
+        log("CLIENT: Mất mạng, WebSocket bị đóng.", "err");
+        setBadge(states.conn, "OFFLINE", "err");
+        setBadge(states.missed, "151-153", "warn");
+        await wait(700);
+
+        log("SERVER: Trong lúc client offline, hệ thống vẫn tạo message 151, 152, 153.", "warn");
+        glow("server", "#0891b2");
+        await move("server", "store", "151-153", "#7c3aed");
+        glow("store", "#7c3aed");
+        await wait(400);
+
+        log("CLIENT: Tự reconnect nhưng không gửi lastMessageId.", "info");
+        await move("client", "server", "reconnect", "#2563eb");
+        glow("server", "#0891b2");
+        setBadge(states.conn, "ONLINE", "ok");
+        await wait(350);
+
+        log("SERVER: Chỉ mở lại kết nối realtime, không biết cần replay từ đâu.", "err");
+        log("KẾT QUẢ: Client online lại nhưng đã lỡ mất 151, 152, 153.", "err");
+        setBadge(states.missed, "LOST", "err");
+    }
+
+    async function runWithSync() {
+        resetBoard();
+        log("CLIENT: Đang online và đã nhận tới messageId = 150.", "info");
+        glow("client", "#2563eb");
+        await wait(500);
+
+        log("CLIENT: Mất mạng, WebSocket bị đóng.", "err");
+        setBadge(states.conn, "OFFLINE", "err");
+        setBadge(states.missed, "151-153", "warn");
+        await wait(700);
+
+        log("SERVER: Khi client offline, hệ thống vẫn tạo message 151, 152, 153 và lưu vào store.", "warn");
+        glow("server", "#0891b2");
+        await move("server", "store", "151-153", "#7c3aed");
+        glow("store", "#7c3aed");
+        await wait(400);
+
+        log("CLIENT: Reconnect và gửi lastMessageId = 150.", "info");
+        await move("client", "server", "lastMessageId=150", "#2563eb");
+        glow("server", "#0891b2");
+        setBadge(states.conn, "RECONNECTED", "ok");
+        await wait(350);
+
+        log("SERVER: Query store để lấy các message có id > 150.", "warn");
+        await move("server", "store", "query > 150", "#0891b2");
+        glow("store", "#7c3aed");
+        await wait(350);
+
+        log("STORE: Trả lại 151, 152, 153 cho server.", "ok");
+        await move("store", "server", "151-153", "#16a34a");
+        glow("server", "#16a34a");
+        await wait(350);
+
+        log("SERVER: Replay các message còn thiếu xuống client.", "ok");
+        await move("server", "client", "replay 151-153", "#16a34a");
+        glow("client", "#16a34a");
+        setBadge(states.conn, "ONLINE", "ok");
+        setBadge(states.last, "153", "ok");
+        setBadge(states.missed, "SYNCED", "ok");
+        log("KẾT QUẢ: Client khôi phục đủ message bị lỡ và quay lại realtime bình thường.", "ok");
+    }
+
+    document.getElementById("btn-no-sync").addEventListener("click", runNoSync);
+    document.getElementById("btn-sync").addEventListener("click", runWithSync);
+    document.getElementById("btn-reset").addEventListener("click", resetBoard);
+
+    resetBoard();
+    log("Bấm 'Reconnect nhưng không sync' để xem lỗi mất message, hoặc 'Reconnect và sync đúng' để xem luồng chuẩn với lastMessageId.", "info");
+</script>
+</body>
+</html>
