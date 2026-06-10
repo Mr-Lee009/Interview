@@ -43,6 +43,12 @@ Nên đọc khi cần ôn: cloud basics, compute, storage, networking, security,
 
 Nên đọc khi cần ôn: distributed tracing, circuit breaker, saga pattern, message broker, Kubernetes probe, service mesh và incident debugging.
 
+## Microservice
+
+- `microservice/QA.md`: 10 câu hỏi phỏng vấn Microservice kèm câu trả lời, ví dụ thực tế và hướng xử lý các vấn đề production như Saga, API Gateway, service discovery, circuit breaker, tracing, duplicate message và data consistency.
+
+Nên đọc khi cần ôn: service boundary, database per service, transaction phân tán, event-driven communication, observability, resilience và deployment trong hệ thống phân tán.
+
 ## Payment
 
 - `payment/doc.md`: hướng dẫn chọn phương án tích hợp MoMo cho website và cấu hình Spring Boot, gồm flow `captureWallet`, tạo chữ ký, create payment, IPN, DB status và checklist production.
