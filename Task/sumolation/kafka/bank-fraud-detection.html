@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Fraud Detection Banking</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --text: #182230;
+            --muted: #667085;
+            --line: #d9e2ef;
+            --blue: #2563eb;
+            --green: #16a34a;
+            --orange: #d97706;
+            --red: #dc2626;
+            --purple: #7c3aed;
+            --dark: #111827;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            width: min(1500px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 18px 0;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: end;
+            margin-bottom: 14px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        h1, h2, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(28px, 4vw, 44px);
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            max-width: 980px;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 15px;
+        }
+
+        .badge {
+            border: 1px solid #fed7aa;
+            background: #fff7ed;
+            color: #c2410c;
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 4fr) minmax(270px, 1fr);
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+        }
+
+        .diagram-card { overflow: hidden; }
+
+        .toolbar {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e4e7ec;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-title { font-weight: 900; }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            min-height: 34px;
+            padding: 0 11px;
+            background: #ffffff;
+            color: #344054;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        button:hover { background: #f8fafc; }
+
+        .primary {
+            border-color: #fed7aa;
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .legend {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            padding: 0 9px;
+            border: 1px solid #e4e7ec;
+            border-radius: 999px;
+            color: #475467;
+            background: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 0;
+            border-top: 2px solid #98a2b3;
+            display: inline-block;
+        }
+
+        .legend-line.event { border-top-color: var(--blue); }
+        .legend-line.check { border-top-color: var(--purple); }
+        .legend-line.alert { border-top-color: var(--red); }
+        .legend-line.audit {
+            border-top-color: var(--green);
+            border-top-style: dashed;
+        }
+
+        .legend-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            display: inline-grid;
+            place-items: center;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .legend-dot.service { background: var(--blue); }
+        .legend-dot.kafka { background: var(--orange); }
+        .legend-dot.risk { background: var(--red); }
+
+        .viewport {
+            width: 100%;
+            height: min(58vh, 590px);
+            min-height: 460px;
+            overflow: auto;
+            scrollbar-gutter: stable both-edges;
+            background:
+                linear-gradient(#eef2f7 1px, transparent 1px),
+                linear-gradient(90deg, #eef2f7 1px, transparent 1px),
+                #fbfcff;
+            background-size: 26px 26px;
+        }
+
+        .diagram {
+            width: var(--diagram-width, 100%);
+            min-width: var(--diagram-min-width, 1500px);
+            min-height: var(--diagram-min-height, 760px);
+            aspect-ratio: 1500 / 760;
+            display: block;
+        }
+
+        .zone rect {
+            stroke-width: 2;
+            rx: 14;
+            stroke-dasharray: 10 8;
+        }
+
+        .zone.bank rect { fill: rgba(37, 99, 235, 0.045); stroke: rgba(37, 99, 235, 0.45); }
+        .zone.kafka rect { fill: rgba(217, 119, 6, 0.045); stroke: rgba(217, 119, 6, 0.45); }
+        .zone.fraud rect { fill: rgba(220, 38, 38, 0.045); stroke: rgba(220, 38, 38, 0.45); }
+        .zone.action rect { fill: rgba(22, 163, 74, 0.045); stroke: rgba(22, 163, 74, 0.45); }
+
+        .zone text {
+            text-anchor: start;
+            font-weight: 900;
+            font-size: 16px;
+            fill: #1f2937;
+            letter-spacing: 0;
+        }
+
+        .zone .zone-sub {
+            font-size: 12px;
+            fill: #667085;
+            font-weight: 800;
+        }
+
+        .flow {
+            stroke: #98a2b3;
+            stroke-width: 2.3;
+            fill: none;
+            marker-end: url(#arrow);
+            stroke-linecap: round;
+        }
+
+        .flow.event { stroke: var(--blue); }
+        .flow.check { stroke: var(--purple); }
+        .flow.alert { stroke: var(--red); }
+        .flow.audit {
+            stroke: var(--green);
+            stroke-dasharray: 7 8;
+            animation: dash 1.3s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -36; }
+        }
+
+        .node rect {
+            fill: #ffffff;
+            stroke: #cfd8e7;
+            stroke-width: 2;
+            rx: 8;
+            filter: drop-shadow(0 8px 12px rgba(16, 24, 40, 0.08));
+        }
+
+        .node text {
+            text-anchor: middle;
+            letter-spacing: 0;
+        }
+
+        .node .title {
+            fill: #111827;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .node .sub {
+            fill: #667085;
+            font-size: 11px;
+        }
+
+        .node.bank rect { stroke: var(--blue); }
+        .node.kafka rect { stroke: var(--orange); }
+        .node.fraud rect { stroke: var(--red); }
+        .node.check rect { stroke: var(--purple); }
+        .node.action rect { stroke: var(--green); }
+
+        .card { padding: 14px; }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 7px;
+            max-height: min(58vh, 590px);
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .step {
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 9px 10px;
+            background: #f8fafc;
+            color: #475467;
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            gap: 8px;
+            align-items: start;
+            line-height: 1.35;
+            cursor: pointer;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #d0d5dd;
+            font-weight: 900;
+            color: #344054;
+        }
+
+        .step strong {
+            display: block;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .step span { font-size: 13px; }
+
+        .step.active {
+            border-color: #fed7aa;
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .step.active .step-number {
+            background: var(--orange);
+            color: #ffffff;
+            border-color: var(--orange);
+        }
+
+        .footer-card {
+            display: grid;
+            gap: 10px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .note,
+        .log-box {
+            border-radius: 8px;
+            padding: 12px;
+            font: 13px/1.5 Consolas, "Courier New", monospace;
+            min-height: 74px;
+        }
+
+        .note {
+            background: var(--dark);
+            color: #d1fae5;
+        }
+
+        .log-box {
+            background: #0f172a;
+            color: #dbeafe;
+        }
+
+        .note span,
+        .log-box span {
+            color: #fcd34d;
+            font-weight: 900;
+        }
+
+        @media (max-width: 1120px) {
+            header,
+            .layout,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .viewport {
+                height: 540px;
+                min-height: 420px;
+            }
+
+            .steps { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header>
+            <div>
+                <h1>Kafka Fraud Detection Banking</h1>
+                <p class="subtitle">
+                    Mô phỏng hệ thống kiểm tra giao dịch nghi ngờ trong ngân hàng:
+                    giao dịch được publish vào Kafka, Fraud Detection consume realtime, chấm điểm rủi ro và tạo alert/case.
+                </p>
+            </div>
+            <div class="badge">transaction.created / fraud.alert.created / DLQ</div>
+
+            <div class="legend">
+                <span class="legend-item"><span class="legend-line event"></span>Event stream chính</span>
+                <span class="legend-item"><span class="legend-line check"></span>Risk check / scoring</span>
+                <span class="legend-item"><span class="legend-line alert"></span>Alert / decision</span>
+                <span class="legend-item"><span class="legend-line audit"></span>Audit / Data lake</span>
+                <span class="legend-item"><span class="legend-dot service">S</span>Service</span>
+                <span class="legend-item"><span class="legend-dot kafka">K</span>Kafka topic</span>
+                <span class="legend-item"><span class="legend-dot risk">R</span>Risk engine</span>
+            </div>
+        </header>
+
+        <section class="layout">
+            <section class="panel diagram-card">
+                <div class="toolbar">
+                    <div class="toolbar-title">Realtime transaction risk flow</div>
+                    <div class="actions">
+                        <button class="primary" id="playBtn" type="button">Play</button>
+                        <button id="prevBtn" type="button">Prev</button>
+                        <button id="nextBtn" type="button">Next</button>
+                        <button id="resetBtn" type="button">Reset</button>
+                        <button id="zoomOutBtn" type="button">-</button>
+                        <span id="zoomLabel">100%</span>
+                        <button id="zoomInBtn" type="button">+</button>
+                    </div>
+                </div>
+
+                <div class="viewport" id="viewport">
+                    <svg class="diagram" id="diagram" viewBox="0 0 1500 760" role="img" aria-label="Kafka fraud detection banking diagram">
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#98a2b3"></path>
+                            </marker>
+                        </defs>
+                        <g id="zoneLayer"></g>
+                        <g id="flowLayer"></g>
+                        <g id="nodeLayer"></g>
+                        <circle id="packet" cx="80" cy="100" r="10" fill="#d97706" opacity="0"></circle>
+                    </svg>
+                </div>
+            </section>
+
+            <section class="panel card steps-card">
+                <h2>12 bước xử lý</h2>
+                <div class="steps" id="steps"></div>
+            </section>
+        </section>
+
+        <footer class="panel card footer-card">
+            <h2>Log / rule vận hành</h2>
+            <div class="footer-grid">
+                <div class="note">
+                    <span>Rule:</span> Với fraud detection, ưu tiên không mất event. Dùng at-least-once + idempotent consumer + DLQ. Alert/case phải chống duplicate bằng eventId hoặc transactionId + ruleVersion.
+                </div>
+                <div class="log-box" id="logBox">
+                    <span>Step 1:</span> Channel phát sinh giao dịch từ khách hàng.
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        const canvasWidth = 1500;
+        const canvasHeight = 760;
+
+        const zones = [
+            { key: "bank", title: "Banking transaction layer", sub: "Channel, API và transaction database", x: 24, y: 28, width: 385, height: 675, type: "bank" },
+            { key: "kafka", title: "Kafka event streaming layer", sub: "Topic, partition, consumer group, DLQ", x: 445, y: 28, width: 300, height: 675, type: "kafka" },
+            { key: "fraud", title: "Fraud detection layer", sub: "Rule, velocity, blacklist, profile, ML scoring", x: 785, y: 28, width: 410, height: 675, type: "fraud" },
+            { key: "action", title: "Action & audit layer", sub: "Case, notification, audit, data lake", x: 1230, y: 28, width: 235, height: 675, type: "action" }
+        ];
+
+        const nodes = [
+            { key: "channel", title: "Mobile/Web/ATM", sub: "Tạo giao dịch", x: 70, y: 105, type: "bank" },
+            { key: "gateway", title: "API Gateway", sub: "Auth/rate limit", x: 70, y: 235, type: "bank" },
+            { key: "txService", title: "Transaction Service", sub: "Ghi DB + publish", x: 70, y: 365, type: "bank" },
+            { key: "txDb", title: "Transaction DB", sub: "PENDING/HELD", x: 70, y: 555, type: "bank" },
+
+            { key: "topicTx", title: "transaction.created", sub: "key=accountId", x: 505, y: 160, type: "kafka" },
+            { key: "topicDecision", title: "fraud.decision", sub: "ALLOW/HOLD/BLOCK", x: 505, y: 330, type: "kafka" },
+            { key: "topicAlert", title: "fraud.alert.created", sub: "risk alert", x: 505, y: 500, type: "kafka" },
+            { key: "dlq", title: "fraud.dlq", sub: "poison message", x: 505, y: 635, type: "kafka" },
+
+            { key: "fraudService", title: "Fraud Detection", sub: "consumer group", x: 835, y: 160, type: "fraud" },
+            { key: "rule", title: "Rule Engine", sub: "threshold/reason", x: 1005, y: 95, type: "check" },
+            { key: "velocity", title: "Velocity Check", sub: "sliding window", x: 1005, y: 225, type: "check" },
+            { key: "blacklist", title: "Blacklist Service", sub: "account/device/IP", x: 1005, y: 355, type: "check" },
+            { key: "profile", title: "Profile Service", sub: "normal behavior", x: 1005, y: 485, type: "check" },
+            { key: "ml", title: "ML Risk Scoring", sub: "score 0-100", x: 1005, y: 615, type: "check" },
+            { key: "decision", title: "Decision Service", sub: "ALLOW/HOLD/BLOCK", x: 835, y: 500, type: "fraud" },
+
+            { key: "case", title: "Case Management", sub: "Fraud Ops", x: 1260, y: 160, type: "action" },
+            { key: "notification", title: "Notification", sub: "SMS/push/email", x: 1260, y: 330, type: "action" },
+            { key: "audit", title: "Audit/Data Lake", sub: "replay/compliance", x: 1260, y: 500, type: "action" }
+        ];
+
+        const steps = [
+            { title: "Giao dịch phát sinh", text: "Khách hàng chuyển tiền từ Mobile/Web/ATM/POS.", from: "channel", to: "gateway", line: "event" },
+            { title: "Transaction Service xử lý", text: "API Gateway route request tới Transaction Service.", from: "gateway", to: "txService", line: "event" },
+            { title: "Ghi transaction DB", text: "Transaction Service ghi giao dịch trạng thái PENDING/PROCESSING.", from: "txService", to: "txDb", line: "event" },
+            { title: "Publish Kafka event", text: "Transaction Service publish TransactionCreatedEvent vào transaction.created.", from: "txService", to: "topicTx", line: "event" },
+            { title: "Fraud consume realtime", text: "Fraud Detection Service consume topic bằng consumer group riêng.", from: "topicTx", to: "fraudService", line: "event" },
+            { title: "Rule Engine", text: "Check amount threshold, giờ giao dịch, người nhận mới, pattern split transaction.", from: "fraudService", to: "rule", line: "check" },
+            { title: "Velocity Check", text: "Tính số lượng/tổng tiền trong time window theo accountId/customerId.", from: "fraudService", to: "velocity", line: "check" },
+            { title: "Blacklist/Profile/ML", text: "Check blacklist, hành vi bình thường và risk score.", from: "fraudService", to: "blacklist", line: "check" },
+            { title: "Ra quyết định", text: "Decision Service tổng hợp score và reason để quyết định ALLOW/HOLD/BLOCK/REVIEW.", from: "fraudService", to: "decision", line: "alert" },
+            { title: "Publish decision/alert", text: "Nếu nghi ngờ, publish fraud.alert.created và fraud.decision.", from: "decision", to: "topicAlert", line: "alert" },
+            { title: "Tạo case/thông báo", text: "Case Management tạo case, Notification gửi SMS/push/email.", from: "topicAlert", to: "case", line: "alert" },
+            { title: "Audit và DLQ", text: "Audit/Data Lake lưu event. Message lỗi sau retry đi vào DLQ.", from: "topicAlert", to: "audit", line: "audit" }
+        ];
+
+        const nodeWidth = 165;
+        const nodeHeight = 84;
+        const zoneLayer = document.getElementById("zoneLayer");
+        const nodeLayer = document.getElementById("nodeLayer");
+        const flowLayer = document.getElementById("flowLayer");
+        const stepsEl = document.getElementById("steps");
+        const packet = document.getElementById("packet");
+        const diagram = document.getElementById("diagram");
+        const viewport = document.getElementById("viewport");
+        const zoomLabel = document.getElementById("zoomLabel");
+        const logBox = document.getElementById("logBox");
+        let activeStep = 0;
+        let zoom = 1;
+        let playing = false;
+
+        function byKey(key) {
+            return nodes.find(node => node.key === key);
+        }
+
+        function center(node) {
+            return { x: node.x + nodeWidth / 2, y: node.y };
+        }
+
+        function zoneTemplate(zone) {
+            return `
+                <g class="zone ${zone.type}">
+                    <rect x="${zone.x}" y="${zone.y}" width="${zone.width}" height="${zone.height}"></rect>
+                    <text x="${zone.x + 20}" y="${zone.y + 30}">${zone.title}</text>
+                    <text class="zone-sub" x="${zone.x + 20}" y="${zone.y + 52}">${zone.sub}</text>
+                </g>
+            `;
+        }
+
+        function nodeTemplate(node) {
+            return `
+                <g class="node ${node.type}" id="node-${node.key}">
+                    <rect x="${node.x}" y="${node.y - nodeHeight / 2}" width="${nodeWidth}" height="${nodeHeight}"></rect>
+                    <text class="title" x="${node.x + 82}" y="${node.y - 8}">${node.title}</text>
+                    <text class="sub" x="${node.x + 82}" y="${node.y + 18}">${node.sub}</text>
+                </g>
+            `;
+        }
+
+        function flowPath(step, index) {
+            const from = center(byKey(step.from));
+            const to = center(byKey(step.to));
+            const midX = Math.round((from.x + to.x) / 2);
+            const path = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
+            return `<path id="flow-${index}" class="flow ${step.line}" d="${path}"></path>`;
+        }
+
+        function render() {
+            zoneLayer.innerHTML = zones.map(zoneTemplate).join("");
+            nodeLayer.innerHTML = nodes.map(nodeTemplate).join("");
+            flowLayer.innerHTML = steps.map(flowPath).join("");
+            stepsEl.innerHTML = steps.map((step, index) => `
+                <div class="step" id="step-${index}" data-index="${index}">
+                    <div class="step-number">${index + 1}</div>
+                    <div>
+                        <strong>${step.title}</strong>
+                        <span>${step.text}</span>
+                    </div>
+                </div>
+            `).join("");
+
+            document.querySelectorAll(".step").forEach(item => {
+                item.addEventListener("click", () => setStep(Number(item.dataset.index)));
+            });
+        }
+
+        function setStep(index) {
+            activeStep = Math.max(0, Math.min(steps.length - 1, index));
+            document.querySelectorAll(".step").forEach((item, itemIndex) => {
+                item.classList.toggle("active", itemIndex === activeStep);
+            });
+            document.querySelectorAll(".flow").forEach((flow, flowIndex) => {
+                flow.style.opacity = flowIndex <= activeStep ? "1" : "0.2";
+                flow.style.strokeWidth = flowIndex === activeStep ? "4" : "2.3";
+            });
+            logBox.innerHTML = `<span>Step ${activeStep + 1}:</span> ${steps[activeStep].title} - ${steps[activeStep].text}`;
+            movePacketTo(activeStep);
+        }
+
+        function movePacketTo(index) {
+            const step = steps[index];
+            const target = center(byKey(step.to));
+            packet.style.transition = "cx 0.45s ease, cy 0.45s ease, opacity 0.2s ease, fill 0.2s ease";
+            packet.setAttribute("cx", target.x);
+            packet.setAttribute("cy", target.y);
+            packet.setAttribute("opacity", "1");
+            packet.setAttribute("fill", step.line === "alert" ? "#dc2626" : step.line === "check" ? "#7c3aed" : step.line === "audit" ? "#16a34a" : "#2563eb");
+        }
+
+        function applyZoom() {
+            diagram.style.setProperty("--diagram-width", `${zoom * 100}%`);
+            diagram.style.setProperty("--diagram-min-width", `${Math.round(canvasWidth * zoom)}px`);
+            diagram.style.setProperty("--diagram-min-height", `${Math.round(canvasHeight * zoom)}px`);
+            zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+        }
+
+        async function play() {
+            if (playing) return;
+            playing = true;
+            for (let i = activeStep; i < steps.length; i++) {
+                setStep(i);
+                await new Promise(resolve => setTimeout(resolve, 950));
+            }
+            playing = false;
+        }
+
+        document.getElementById("playBtn").addEventListener("click", play);
+        document.getElementById("prevBtn").addEventListener("click", () => setStep(activeStep - 1));
+        document.getElementById("nextBtn").addEventListener("click", () => setStep(activeStep + 1));
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            activeStep = 0;
+            packet.setAttribute("opacity", "0");
+            setStep(0);
+            viewport.scrollLeft = 0;
+            viewport.scrollTop = 0;
+        });
+        document.getElementById("zoomInBtn").addEventListener("click", () => {
+            zoom = Math.min(1.8, Number((zoom + 0.15).toFixed(2)));
+            applyZoom();
+        });
+        document.getElementById("zoomOutBtn").addEventListener("click", () => {
+            zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
+            applyZoom();
+        });
+
+        render();
+        applyZoom();
+        setStep(0);
+    </script>
+</body>
+</html>
