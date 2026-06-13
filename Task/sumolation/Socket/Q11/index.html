@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat Architecture 100k Connections</title>
+    <style>
+        :root {
+            --bg: #f4efe6;
+            --page: rgba(255, 251, 245, 0.95);
+            --text: #2f241d;
+            --muted: #6d6259;
+            --line: #d9cdbf;
+            --card: #fffdf9;
+            --primary: #b45309;
+            --primary-soft: #fff1db;
+            --secondary: #0f766e;
+            --secondary-soft: #e7fffb;
+            --accent: #1d4ed8;
+            --accent-soft: #e8f0ff;
+            --danger: #b91c1c;
+            --danger-soft: #fee2e2;
+            --shadow: 0 18px 40px rgba(68, 48, 30, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(180, 83, 9, 0.14), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(29, 78, 216, 0.10), transparent 26%),
+                linear-gradient(180deg, #f7f1e7 0%, #f2ebe1 100%);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1320px;
+            margin: 0 auto;
+            background: var(--page);
+            border: 1px solid #eadfce;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            text-align: center;
+            font-size: 34px;
+            letter-spacing: 0.2px;
+        }
+
+        .subtitle {
+            max-width: 920px;
+            margin: 0 auto 22px;
+            text-align: center;
+            line-height: 1.65;
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            color: #fff;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(68, 48, 30, 0.16);
+        }
+
+        .btn-scale { background: var(--primary); }
+        .btn-sync { background: var(--secondary); }
+        .btn-offline { background: var(--accent); }
+        .btn-reset { background: #6b7280; }
+
+        .simulator {
+            position: relative;
+            height: 620px;
+            overflow: hidden;
+            border-radius: 24px;
+            border: 1px solid #e5d9c9;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,250,244,0.92)),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0,
+                    transparent 88px,
+                    rgba(217, 205, 191, 0.16) 88px,
+                    rgba(217, 205, 191, 0.16) 89px
+                );
+        }
+
+        .simulator svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .link {
+            stroke: var(--line);
+            stroke-width: 2.2;
+            stroke-dasharray: 7 7;
+        }
+
+        .node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 184px;
+            padding: 14px;
+            border-radius: 18px;
+            background: var(--card);
+            border: 2px solid;
+            box-shadow: 0 10px 24px rgba(68, 48, 30, 0.08);
+            z-index: 2;
+            text-align: center;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .node h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .node p {
+            margin: 0;
+            line-height: 1.45;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .node.small {
+            width: 150px;
+            padding: 12px;
+        }
+
+        .node.active {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        .primary { border-color: var(--primary); background: var(--primary-soft); }
+        .secondary { border-color: var(--secondary); background: var(--secondary-soft); }
+        .accent { border-color: var(--accent); background: var(--accent-soft); }
+        .danger { border-color: var(--danger); background: var(--danger-soft); }
+
+        #clients { top: 104px; left: 14%; }
+        #lb { top: 104px; left: 38%; }
+        #node1 { top: 260px; left: 26%; }
+        #node2 { top: 260px; left: 50%; }
+        #node3 { top: 260px; left: 74%; }
+        #presence { top: 472px; left: 18%; }
+        #broker { top: 472px; left: 50%; }
+        #store { top: 472px; left: 82%; }
+        #offlineUser { top: 104px; left: 84%; }
+
+        .packet {
+            position: absolute;
+            z-index: 3;
+            min-width: 140px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            color: #fff;
+            font: 700 12px/1.2 "Segoe UI", Tahoma, sans-serif;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            box-shadow: 0 10px 20px rgba(68, 48, 30, 0.18);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.05fr 1fr 1fr;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.88);
+            border: 1px solid #e5d9c9;
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid #f1e7da;
+            font-size: 14px;
+        }
+
+        .row:last-child { border-bottom: 0; }
+
+        .badge {
+            border-radius: 999px;
+            padding: 4px 9px;
+            font: 700 11px/1 "Segoe UI", Tahoma, sans-serif;
+            background: #e5e7eb;
+            color: #374151;
+            white-space: nowrap;
+        }
+
+        .ok { background: #dcfce7; color: #166534; }
+        .warn { background: #fef3c7; color: #92400e; }
+        .err { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1d4ed8; }
+
+        .insight {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: #fff7ec;
+            border: 1px solid #f3ddbe;
+            line-height: 1.6;
+            color: #5e4a39;
+        }
+
+        .log {
+            margin-top: 18px;
+            height: 240px;
+            overflow-y: auto;
+            padding: 16px;
+            border-radius: 18px;
+            background: #1f2937;
+            color: #e5e7eb;
+            font: 13px/1.55 Consolas, monospace;
+        }
+
+        .log .info-line { color: #bfdbfe; }
+        .log .ok-line { color: #86efac; }
+        .log .warn-line { color: #fde68a; }
+        .log .err-line { color: #fca5a5; }
+
+        @media (max-width: 1080px) {
+            .simulator {
+                height: 900px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            #clients { top: 90px; left: 50%; }
+            #lb { top: 220px; left: 50%; }
+            #node1 { top: 360px; left: 20%; }
+            #node2 { top: 360px; left: 50%; }
+            #node3 { top: 360px; left: 80%; }
+            #presence { top: 570px; left: 24%; }
+            #broker { top: 570px; left: 50%; }
+            #store { top: 570px; left: 76%; }
+            #offlineUser { top: 760px; left: 50%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Kiến trúc Chat WebSocket cho 100.000 kết nối</h1>
+    <p class="subtitle">
+        Một sơ đồ cho ba câu hỏi phỏng vấn thường đi cùng nhau: scale số lượng connection lớn,
+        đồng bộ message giữa nhiều instance Spring Boot, và không làm mất message khi user offline.
+    </p>
+
+    <div class="controls">
+        <button class="btn-scale" id="btn-scale">1. Scale 100k connections</button>
+        <button class="btn-sync" id="btn-sync">2. Đồng bộ multi-instance</button>
+        <button class="btn-offline" id="btn-offline">3. User offline và reconnect</button>
+        <button class="btn-reset" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="simulator">
+        <svg viewBox="0 0 1200 620" preserveAspectRatio="none">
+            <line class="link" x1="168" y1="104" x2="456" y2="104"></line>
+            <line class="link" x1="456" y1="104" x2="312" y2="260"></line>
+            <line class="link" x1="456" y1="104" x2="600" y2="260"></line>
+            <line class="link" x1="456" y1="104" x2="888" y2="260"></line>
+            <line class="link" x1="312" y1="260" x2="600" y2="472"></line>
+            <line class="link" x1="600" y1="260" x2="600" y2="472"></line>
+            <line class="link" x1="888" y1="260" x2="600" y2="472"></line>
+            <line class="link" x1="312" y1="260" x2="216" y2="472"></line>
+            <line class="link" x1="600" y1="260" x2="984" y2="472"></line>
+            <line class="link" x1="1008" y1="104" x2="888" y2="260"></line>
+            <line class="link" x1="1008" y1="104" x2="984" y2="472"></line>
+        </svg>
+
+        <div class="node primary" id="clients">
+            <h2>Clients</h2>
+            <p>Nhiều mobile app, browser tab, desktop app cùng mở WebSocket.</p>
+        </div>
+
+        <div class="node secondary" id="lb">
+            <h2>Load Balancer</h2>
+            <p>Phân phối kết nối tới nhiều Spring Boot WebSocket nodes.</p>
+        </div>
+
+        <div class="node accent" id="node1">
+            <h2>Spring Node 1</h2>
+            <p>Giữ một phần session và push realtime cho user local.</p>
+        </div>
+
+        <div class="node accent" id="node2">
+            <h2>Spring Node 2</h2>
+            <p>Không biết session của node khác nếu chỉ nhìn local memory.</p>
+        </div>
+
+        <div class="node accent" id="node3">
+            <h2>Spring Node 3</h2>
+            <p>Có thể là node đang giữ người nhận hoặc xử lý reconnect.</p>
+        </div>
+
+        <div class="node small secondary" id="presence">
+            <h2>Redis Presence</h2>
+            <p>Biết user đang online ở node nào.</p>
+        </div>
+
+        <div class="node primary" id="broker">
+            <h2>Kafka / Redis PubSub</h2>
+            <p>Đồng bộ event giữa các instance và fan-out message.</p>
+        </div>
+
+        <div class="node danger" id="store">
+            <h2>DB / Message Store</h2>
+            <p>Lưu message bền vững để replay khi user offline.</p>
+        </div>
+
+        <div class="node small danger" id="offlineUser">
+            <h2>User Offline</h2>
+            <p>Không nhận realtime, sẽ lấy bù khi reconnect.</p>
+        </div>
+
+        <div class="packet" id="packet"></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Trạng thái kiến trúc</h3>
+            <div class="row"><span>Load balancer</span><span class="badge" id="state-lb">IDLE</span></div>
+            <div class="row"><span>Spring nodes</span><span class="badge" id="state-nodes">IDLE</span></div>
+            <div class="row"><span>Presence mapping</span><span class="badge" id="state-presence">IDLE</span></div>
+            <div class="row"><span>Broker fan-out</span><span class="badge" id="state-broker">IDLE</span></div>
+            <div class="row"><span>Message store</span><span class="badge" id="state-store">IDLE</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Delivery state</h3>
+            <div class="row"><span>User online trên node local</span><span class="badge" id="state-online">WAITING</span></div>
+            <div class="row"><span>User trên node khác</span><span class="badge" id="state-remote">WAITING</span></div>
+            <div class="row"><span>User offline</span><span class="badge" id="state-offline">WAITING</span></div>
+            <div class="row"><span>Reconnect sync</span><span class="badge" id="state-reconnect">WAITING</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Kết luận nhanh</h3>
+            <div class="row"><span>100k connections</span><span class="badge ok">Scale ngang</span></div>
+            <div class="row"><span>Multi-instance sync</span><span class="badge ok">Broker chung</span></div>
+            <div class="row"><span>User offline</span><span class="badge ok">Lưu DB + replay</span></div>
+            <div class="row"><span>Không nên</span><span class="badge err">Chỉ dựa RAM local</span></div>
+        </div>
+    </div>
+
+    <div class="insight" id="insight">
+        Bấm từng nút để xem ba phần của cùng một kiến trúc. Câu trả lời tốt trong phỏng vấn thường nhấn vào việc tách `connection`, `event distribution` và `message durability`.
+    </div>
+
+    <div class="log" id="log"></div>
+</div>
+
+<script>
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const packet = document.getElementById("packet");
+    const logBox = document.getElementById("log");
+    const insight = document.getElementById("insight");
+
+    const nodes = {
+        clients: document.getElementById("clients"),
+        lb: document.getElementById("lb"),
+        node1: document.getElementById("node1"),
+        node2: document.getElementById("node2"),
+        node3: document.getElementById("node3"),
+        presence: document.getElementById("presence"),
+        broker: document.getElementById("broker"),
+        store: document.getElementById("store"),
+        offlineUser: document.getElementById("offlineUser")
+    };
+
+    const states = {
+        lb: document.getElementById("state-lb"),
+        nodes: document.getElementById("state-nodes"),
+        presence: document.getElementById("state-presence"),
+        broker: document.getElementById("state-broker"),
+        store: document.getElementById("state-store"),
+        online: document.getElementById("state-online"),
+        remote: document.getElementById("state-remote"),
+        offline: document.getElementById("state-offline"),
+        reconnect: document.getElementById("state-reconnect")
+    };
+
+    const positions = {
+        clients: { top: "104px", left: "14%" },
+        lb: { top: "104px", left: "38%" },
+        node1: { top: "260px", left: "26%" },
+        node2: { top: "260px", left: "50%" },
+        node3: { top: "260px", left: "74%" },
+        presence: { top: "472px", left: "18%" },
+        broker: { top: "472px", left: "50%" },
+        store: { top: "472px", left: "82%" },
+        offlineUser: { top: "104px", left: "84%" }
+    };
+
+    function setBadge(el, text, cls = "") {
+        el.textContent = text;
+        el.className = "badge";
+        if (cls) {
+            el.classList.add(cls);
+        }
+    }
+
+    function log(message, type = "info") {
+        logBox.innerHTML += `<div class="${type}-line">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function glow(key, color) {
+        const node = nodes[key];
+        node.classList.add("active");
+        node.style.boxShadow = `0 0 0 4px ${color}22, 0 16px 34px rgba(68, 48, 30, 0.16)`;
+        setTimeout(() => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 24px rgba(68, 48, 30, 0.08)";
+        }, 900);
+    }
+
+    async function move(from, to, text, color) {
+        packet.textContent = text;
+        packet.style.background = color;
+        packet.style.opacity = "1";
+        packet.style.transition = "none";
+        packet.style.top = positions[from].top;
+        packet.style.left = positions[from].left;
+        await wait(40);
+        packet.style.transition = "top 0.95s ease, left 0.95s ease, opacity 0.2s ease";
+        packet.style.top = positions[to].top;
+        packet.style.left = positions[to].left;
+        await wait(950);
+        packet.style.opacity = "0";
+    }
+
+    function resetBoard() {
+        packet.style.opacity = "0";
+        logBox.innerHTML = "";
+        setBadge(states.lb, "IDLE");
+        setBadge(states.nodes, "IDLE");
+        setBadge(states.presence, "IDLE");
+        setBadge(states.broker, "IDLE");
+        setBadge(states.store, "IDLE");
+        setBadge(states.online, "WAITING");
+        setBadge(states.remote, "WAITING");
+        setBadge(states.offline, "WAITING");
+        setBadge(states.reconnect, "WAITING");
+
+        Object.values(nodes).forEach((node) => {
+            node.classList.remove("active");
+            node.style.boxShadow = "0 10px 24px rgba(68, 48, 30, 0.08)";
+        });
+
+        insight.textContent = "Bấm từng nút để xem ba phần của cùng một kiến trúc. Câu trả lời tốt trong phỏng vấn thường nhấn vào việc tách connection, event distribution và message durability.";
+    }
+
+    async function runScaleScenario() {
+        resetBoard();
+        insight.textContent = "Để lên 100.000 kết nối, hệ thống cần nhiều WebSocket nodes phía sau load balancer. Mỗi node chỉ giữ một phần session, không ôm toàn bộ traffic trong một JVM.";
+
+        log("Nhiều client cùng mở WebSocket tới load balancer.", "info");
+        glow("clients", "#b45309");
+        await move("clients", "lb", "100k ws connect", "#b45309");
+        glow("lb", "#0f766e");
+        setBadge(states.lb, "ROUTING", "info");
+        await wait(200);
+
+        log("Load balancer phân phối kết nối về nhiều Spring Boot nodes.", "warn");
+        await move("lb", "node1", "route 1", "#1d4ed8");
+        glow("node1", "#1d4ed8");
+        await move("lb", "node2", "route 2", "#1d4ed8");
+        glow("node2", "#1d4ed8");
+        await move("lb", "node3", "route 3", "#1d4ed8");
+        glow("node3", "#1d4ed8");
+        setBadge(states.nodes, "SHARDED", "ok");
+        setBadge(states.online, "CONNECTED", "ok");
+
+        log("Presence store giữ mapping user -> node để biết user nào đang online ở đâu.", "warn");
+        await move("node2", "presence", "presence update", "#0f766e");
+        glow("presence", "#0f766e");
+        setBadge(states.presence, "UPDATED", "ok");
+
+        log("Kết luận: scale bằng nhiều node nhỏ hơn, không phải một instance Spring Boot rất lớn.", "ok");
+    }
+
+    async function runSyncScenario() {
+        resetBoard();
+        insight.textContent = "Khi nhiều instance cùng chạy, node nhận message không chắc là node giữ người nhận. Broker chung là phần bắt buộc nếu muốn fan-out đúng giữa các JVM khác nhau.";
+
+        log("User A đang kết nối vào Node 1 và gửi tin nhắn.", "info");
+        glow("node1", "#1d4ed8");
+        setBadge(states.online, "SENDER ON NODE1", "info");
+        await wait(300);
+
+        log("Node 1 ghi message và publish event vào broker.", "warn");
+        await move("node1", "store", "persist message", "#b91c1c");
+        glow("store", "#b91c1c");
+        setBadge(states.store, "SAVED", "ok");
+        await move("node1", "broker", "chat.message.created", "#b45309");
+        glow("broker", "#b45309");
+        setBadge(states.broker, "PUBLISHED", "ok");
+        await wait(250);
+
+        log("Node 3 subscribe được event và nhận ra user B đang ở node của nó.", "warn");
+        await move("broker", "node3", "fan-out event", "#0f766e");
+        glow("node3", "#0f766e");
+        setBadge(states.remote, "RECEIVED ON NODE3", "ok");
+
+        log("Node 3 push xuống WebSocket local của user B.", "ok");
+        setBadge(states.nodes, "SYNCED", "ok");
+        log("Nếu chỉ broadcast local memory ở Node 1 thì user trên Node 3 sẽ bị bỏ sót.", "err");
+    }
+
+    async function runOfflineScenario() {
+        resetBoard();
+        insight.textContent = "Khi user offline, WebSocket không còn là nơi giao message được nữa. Hệ thống phải lưu bền vững vào DB hoặc message store, rồi replay sau khi reconnect dựa trên lastMessageId hoặc sequence.";
+
+        log("User nhận đang offline nên không thể push realtime.", "err");
+        glow("offlineUser", "#b91c1c");
+        setBadge(states.offline, "OFFLINE", "err");
+        await wait(350);
+
+        log("Node 2 vẫn nhận message mới và lưu vào message store với trạng thái pending.", "warn");
+        glow("node2", "#1d4ed8");
+        await move("node2", "store", "save pending", "#b91c1c");
+        glow("store", "#b91c1c");
+        setBadge(states.store, "PENDING MSG", "warn");
+        await wait(250);
+
+        log("Khi user reconnect qua load balancer, request có lastMessageId được gửi lên.", "info");
+        await move("offlineUser", "lb", "reconnect + lastMessageId", "#1d4ed8");
+        glow("lb", "#0f766e");
+        await move("lb", "node3", "route reconnect", "#1d4ed8");
+        glow("node3", "#1d4ed8");
+        setBadge(states.reconnect, "IN PROGRESS", "info");
+        await wait(250);
+
+        log("Node 3 query store để lấy message có id lớn hơn lastMessageId.", "warn");
+        await move("node3", "store", "query missed", "#0f766e");
+        glow("store", "#b91c1c");
+        await wait(250);
+
+        log("Store trả phần message bị lỡ để node replay cho client.", "ok");
+        await move("store", "node3", "messages 151-153", "#b45309");
+        glow("node3", "#0f766e");
+        await move("node3", "offlineUser", "replay missed", "#1d4ed8");
+        glow("offlineUser", "#1d4ed8");
+
+        setBadge(states.offline, "DELIVERED AFTER RECONNECT", "ok");
+        setBadge(states.reconnect, "SYNCED", "ok");
+        log("Kết luận: offline không làm mất tin nếu message được lưu bền vững và có cơ chế replay.", "ok");
+    }
+
+    document.getElementById("btn-scale").addEventListener("click", runScaleScenario);
+    document.getElementById("btn-sync").addEventListener("click", runSyncScenario);
+    document.getElementById("btn-offline").addEventListener("click", runOfflineScenario);
+    document.getElementById("btn-reset").addEventListener("click", resetBoard);
+
+    resetBoard();
+    log("Trang này gộp ba ý của kiến trúc chat WebSocket: scale connection, multi-instance sync và offline replay.", "info");
+</script>
+</body>
+</html>

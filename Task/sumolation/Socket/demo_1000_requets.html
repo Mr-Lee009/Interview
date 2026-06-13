@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Hệ thống WebSocket Scale & Đồng bộ</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; text-align: center; }
+        h2 { color: #2c3e50; }
+        .system-board { display: flex; flex-direction: column; align-items: center; gap: 30px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; }
+        
+        /* Elements */
+        .box { padding: 15px 25px; border-radius: 8px; font-weight: bold; width: 180px; transition: all 0.3s ease; position: relative; }
+        .client-layer, .server-layer { display: flex; gap: 50px; width: 100%; justify-content: center; }
+        
+        .client { background-color: #e1f5fe; border: 2px solid #03a9f4; }
+        .client.connected { background-color: #b3e5fc; box-shadow: 0 0 10px #03a9f4; }
+        
+        .lb { background-color: #fff3e0; border: 2px solid #ff9800; width: 300px; z-index: 10; }
+        
+        .server { background-color: #e8f5e9; border: 2px solid #4caf50; }
+        .server span { display: block; font-size: 0.85em; font-weight: normal; margin-top: 5px; color: #555; }
+        
+        .redis { background-color: #ffebee; border: 2px solid #f44336; width: 400px; }
+
+        /* Animation Classes */
+        .active-send { animation: pulseSend 0.8s ease-in-out; }
+        .active-receive { animation: pulseReceive 0.8s ease-in-out; }
+        .active-redis { animation: pulseRedis 0.8s ease-in-out; }
+
+        @keyframes pulseSend { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7); } 50% { transform: scale(1.1); box-shadow: 0 0 15px 10px rgba(33, 150, 243, 0); } 100% { transform: scale(1); } }
+        @keyframes pulseReceive { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 50% { transform: scale(1.1); box-shadow: 0 0 15px 10px rgba(76, 175, 80, 0); } 100% { transform: scale(1); } }
+        @keyframes pulseRedis { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 15px 10px rgba(244, 67, 54, 0); } 100% { transform: scale(1); } }
+
+        /* Logs & Controls */
+        .controls { margin: 20px 0; display: flex; gap: 15px; justify-content: center; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; background-color: #2c3e50; color: white; transition: 0.2s; }
+        button:hover { background-color: #34495e; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        .logs { text-align: left; background: #222; color: #0f0; padding: 15px; border-radius: 8px; font-family: monospace; height: 150px; overflow-y: auto; font-size: 14px; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px dashed #444; padding-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Mô phỏng Kiến trúc WebSocket</h2>
+    
+    <div class="controls">
+        <button id="btnConnect" onclick="connectUsers()">1. Kết nối Users (Scale via LB)</button>
+        <button id="btnSend" onclick="sendMessage()" disabled>2. User A gửi tin cho User B (Đồng bộ qua Redis)</button>
+        <button id="btnReset" onclick="resetSim()">Reset</button>
+    </div>
+
+    <div class="system-board">
+        <div class="client-layer">
+            <div id="userA" class="box client">User A<br><small>(Hà Nội)</small></div>
+            <div id="userB" class="box client">User B<br><small>(TP.HCM)</small></div>
+        </div>
+
+        <div id="lb" class="box lb">
+            Load Balancer (Nginx / ALB)
+            <br><small>Quản lý 100.000+ kết nối, điều phối Request</small>
+        </div>
+
+        <div class="server-layer">
+            <div id="server1" class="box server">
+                Spring Boot #1
+                <span id="sessionA">Sessions: [Trống]</span>
+            </div>
+            <div id="server2" class="box server">
+                Spring Boot #2
+                <span id="sessionB">Sessions: [Trống]</span>
+            </div>
+        </div>
+
+        <div id="redis" class="box redis">
+            Redis (Pub/Sub) Broker
+            <br><small>Đồng bộ dữ liệu giữa các Instances</small>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h3 style="text-align: left; margin-bottom: 10px;">Console Log:</h3>
+        <div class="logs" id="logBox"></div>
+    </div>
+</div>
+
+<script>
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const logBox = document.getElementById('logBox');
+
+    function logMessage(msg) {
+        const time = new Date().toLocaleTimeString();
+        logBox.innerHTML += `<div class="log-entry">[${time}] ${msg}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function connectUsers() {
+        document.getElementById('btnConnect').disabled = true;
+        logMessage("Bắt đầu khởi tạo kết nối WebSocket...");
+        
+        // User A connects
+        await sleep(500);
+        document.getElementById('userA').classList.add('connected');
+        document.getElementById('lb').classList.add('active-receive');
+        logMessage("User A yêu cầu kết nối -> Load Balancer nhận request.");
+        
+        await sleep(800);
+        document.getElementById('lb').classList.remove('active-receive');
+        document.getElementById('server1').classList.add('active-receive');
+        document.getElementById('sessionA').innerText = "Sessions: [User A]";
+        logMessage("Load Balancer điều hướng User A tới <b>Spring Boot #1</b>.");
+
+        // User B connects
+        await sleep(1000);
+        document.getElementById('server1').classList.remove('active-receive');
+        document.getElementById('userB').classList.add('connected');
+        document.getElementById('lb').classList.add('active-receive');
+        logMessage("User B yêu cầu kết nối -> Load Balancer nhận request.");
+
+        await sleep(800);
+        document.getElementById('lb').classList.remove('active-receive');
+        document.getElementById('server2').classList.add('active-receive');
+        document.getElementById('sessionB').innerText = "Sessions: [User B]";
+        logMessage("Load Balancer điều hướng User B tới <b>Spring Boot #2</b> (Cân bằng tải).");
+        
+        setTimeout(() => document.getElementById('server2').classList.remove('active-receive'), 800);
+        
+        document.getElementById('btnSend').disabled = false;
+        logMessage("---- HỆ THỐNG ĐÃ SẴN SÀNG ----");
+    }
+
+    async function sendMessage() {
+        document.getElementById('btnSend').disabled = true;
+        logMessage("<br><b>[Bắt đầu quá trình gửi tin nhắn User A -> User B]</b>");
+
+        // 1. User A sends
+        await sleep(500);
+        document.getElementById('userA').classList.add('active-send');
+        logMessage("User A gửi tin nhắn 'Hello' lên Server.");
+
+        // 2. Server 1 receives
+        await sleep(800);
+        document.getElementById('userA').classList.remove('active-send');
+        document.getElementById('server1').classList.add('active-receive');
+        logMessage("<b>Spring Boot #1</b> nhận tin. Kiểm tra session: 'Tôi không giữ kết nối của User B'.");
+
+        // 3. Publish to Redis
+        await sleep(1200);
+        document.getElementById('server1').classList.remove('active-receive');
+        document.getElementById('redis').classList.add('active-redis');
+        logMessage("<b>Spring Boot #1</b> PUBLISH tin nhắn vào <b>Redis</b>.");
+
+        // 4. Server 2 receives from Redis
+        await sleep(1000);
+        document.getElementById('redis').classList.remove('active-redis');
+        document.getElementById('server2').classList.add('active-receive');
+        logMessage("<b>Spring Boot #2</b> (đang subscribe Redis) nhận được tin nhắn.");
+        logMessage("<b>Spring Boot #2</b> kiểm tra: 'Tôi đang giữ kết nối của User B!'.");
+
+        // 5. Send to User B
+        await sleep(1200);
+        document.getElementById('server2').classList.remove('active-receive');
+        document.getElementById('userB').classList.add('active-receive');
+        logMessage("<b>Spring Boot #2</b> đẩy tin nhắn qua WebSocket tới User B.");
+
+        await sleep(800);
+        document.getElementById('userB').classList.remove('active-receive');
+        logMessage("<b>Thành công:</b> User B đã nhận được tin nhắn!");
+        
+        document.getElementById('btnSend').disabled = false;
+    }
+
+    function resetSim() {
+        document.getElementById('btnConnect').disabled = false;
+        document.getElementById('btnSend').disabled = true;
+        document.getElementById('userA').classList.remove('connected');
+        document.getElementById('userB').classList.remove('connected');
+        document.getElementById('sessionA').innerText = "Sessions: [Trống]";
+        document.getElementById('sessionB').innerText = "Sessions: [Trống]";
+        logBox.innerHTML = "";
+    }
+</script>
+</body>
+</html>
