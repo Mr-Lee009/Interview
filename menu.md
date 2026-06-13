@@ -17,6 +17,8 @@ Nên đọc khi cần ôn: OOP, collection, exception, string, thread, Java 8, p
 - `Task/sumolation/menu.md`: mục lục chi tiết cho các chủ đề Redis, Kafka, CA/X.509, chữ ký số và Design Pattern.
 - `Task/sumolation/SIMULATION_UI_RULES.md`: rule chuẩn để thiết kế các màn hình mô phỏng HTML, lấy `AWS/index.html` làm mẫu.
 - `Task/sumolation/message-systems-comparison.md`: so sánh Kafka, RabbitMQ, Redis Pub/Sub và Redis Streams.
+- `Task/sumolation/kafka-rabbitmq-cluster-performance.md`: so sánh hiệu suất Kafka Cluster và RabbitMQ Cluster khi đều có leader/master và replica/follower.
+- `Task/sumolation/message-queue-performance-test/`: bộ kịch bản benchmark Kafka và RabbitMQ, gồm tài liệu test, docker compose riêng và script chạy benchmark.
 - `Task/sumolation/index.html`: demo mô phỏng nhận diện vân tay/sinh trắc học.
 
 Ghi chú: thư mục hiện tên là `sumolation`, có thể hiểu là nhóm tài liệu `simulation`.

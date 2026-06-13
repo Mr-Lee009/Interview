@@ -1,0 +1,60 @@
+services:
+  rabbitmq-1:
+    image: rabbitmq:4.1-management
+    container_name: mqtest-rabbitmq-1
+    hostname: rabbitmq-1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: mqtest-secret-cookie
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_1_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-benchmark-net
+
+  rabbitmq-2:
+    image: rabbitmq:4.1-management
+    container_name: mqtest-rabbitmq-2
+    hostname: rabbitmq-2
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: mqtest-secret-cookie
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_2_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-benchmark-net
+
+  rabbitmq-3:
+    image: rabbitmq:4.1-management
+    container_name: mqtest-rabbitmq-3
+    hostname: rabbitmq-3
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: mqtest-secret-cookie
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_3_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-benchmark-net
+
+networks:
+  rabbitmq-benchmark-net:
+    name: rabbitmq-benchmark-net
+
+volumes:
+  rabbitmq_1_data:
+  rabbitmq_2_data:
+  rabbitmq_3_data:
