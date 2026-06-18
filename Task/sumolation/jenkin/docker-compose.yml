@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins_server
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080" # Cổng web UI của Jenkins
+      - "50000:50000" # Cổng giao tiếp cho Jenkins agents
+    volumes:
+      - jenkins_home:/var/jenkins_home # Mount volume để lưu trữ dữ liệu bền vững
+      - /var/run/docker.sock:/var/run/docker.sock # Cho phép Jenkins gọi Docker daemon của máy Host
+      - /usr/bin/docker:/usr/bin/docker # Ánh xạ lệnh docker (Tùy chọn, cần thiết trên Linux)
+    restart: unless-stopped
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true # Bật màn hình setup ban đầu
+
+volumes:
+  jenkins_home:
+    name: jenkins_data # Tạo một volume có tên là jenkins_data

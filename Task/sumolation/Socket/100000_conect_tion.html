@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Scale 100.000 WebSocket Connections</title>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; background-color: #f5f7fb; color: #333; margin: 0; padding: 20px; box-sizing: border-box; }
+        
+        /* Row 1: Header */
+        .header { background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .header-title { margin: 0 0 5px 0; color: #1e3a8a; font-size: 22px; }
+        .header-subtitle { margin: 0 0 10px 0; font-size: 14px; color: #666; }
+        .tags { margin-bottom: 10px; }
+        .tags span { display: inline-block; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; font-weight: 600; color: #334155; }
+        
+        .legend { display: flex; flex-wrap: wrap; gap: 15px; font-size: 13px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+        
+        /* Row 2: Main Layout */
+        .layout { display: grid; grid-template-columns: minmax(0, 4fr) minmax(260px, 1fr); gap: 14px; }
+        @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+        
+        .panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* Diagram styling */
+        .diagram-viewport { overflow: auto; width: 100%; height: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa; }
+        .diagram { min-width: 700px; width: 100%; height: auto; display: block; }
+        
+        .node-rect { fill: #fff; stroke-width: 2; rx: 8; ry: 8; }
+        .node-text { font-size: 14px; font-weight: 600; fill: #1e293b; }
+        .node-subtext { font-size: 12px; fill: #64748b; }
+        .badge-rect { rx: 4; ry: 4; }
+        .badge-text { font-size: 10px; font-weight: bold; fill: #fff; }
+        
+        /* Flow Lines */
+        .line { fill: none; stroke: #cbd5e1; stroke-width: 2; transition: all 0.3s; }
+        .line-dashed { stroke-dasharray: 6 4; }
+        .line-active { stroke: #3b82f6; stroke-width: 3; animation: flowDash 1s linear infinite; }
+        @keyframes flowDash { to { stroke-dashoffset: -20; } }
+        
+        /* Specific Colors */
+        .c-usr { stroke: #3b82f6; } .bg-usr { fill: #3b82f6; }
+        .c-lb { stroke: #f59e0b; } .bg-lb { fill: #f59e0b; }
+        .c-app { stroke: #10b981; } .bg-app { fill: #10b981; }
+        .c-rd { stroke: #ef4444; } .bg-rd { fill: #ef4444; }
+        .c-db { stroke: #8b5cf6; } .bg-db { fill: #8b5cf6; }
+
+        /* Steps Panel */
+        .step-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .step-item { padding: 12px; border-left: 3px solid #e2e8f0; cursor: pointer; transition: all 0.2s; background: #f8fafc; border-radius: 0 6px 6px 0; }
+        .step-item:hover { background: #f1f5f9; }
+        .step-item.active { border-left-color: #3b82f6; background: #eff6ff; }
+        .step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #1e3a8a; }
+        .step-desc { font-size: 12px; color: #475569; line-height: 1.4; }
+
+        /* Row 3: Footer */
+        .footer { background: #fff; padding: 15px 20px; border-radius: 8px; margin-top: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 30px; flex-wrap: wrap; }
+        .footer-col { flex: 1; min-width: 250px; }
+        .footer-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        .footer-content { font-size: 13px; color: #475569; }
+        .footer-content ul { padding-left: 20px; margin: 0; }
+        .footer-content li { margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+<!-- Row 1: Header -->
+<div class="header">
+    <h1 class="header-title">Hệ thống WebSocket Scale 100.000 Kết Nối</h1>
+    <p class="header-subtitle">Mô phỏng kiến trúc Non-blocking với Spring Boot WebFlux, cân bằng tải Load Balancer và đồng bộ session qua Redis Pub/Sub.</p>
+    <div class="tags">
+        <span>#WebSocket</span>
+        <span>#WebFlux</span>
+        <span>#Redis Pub/Sub</span>
+        <span>#High Concurrency</span>
+    </div>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-box bg-usr"></div> User / Network</div>
+        <div class="legend-item"><div class="legend-box bg-lb"></div> Load Balancer</div>
+        <div class="legend-item"><div class="legend-box bg-app"></div> Application Node</div>
+        <div class="legend-item"><div class="legend-box bg-rd"></div> Message Broker</div>
+        <div class="legend-item"><div class="legend-box bg-db"></div> Database</div>
+        <div class="legend-item" style="margin-left: 20px;">
+            <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4" /></svg> Luồng đồng bộ / Xử lý ngầm
+        </div>
+        <div class="legend-item">
+            <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#cbd5e1" stroke-width="2" /></svg> Kết nối WebSocket trực tiếp
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Main Content -->
+<div class="layout">
+    <!-- 80% Diagram -->
+    <div class="panel">
+        <div class="diagram-viewport">
+            <svg class="diagram" viewBox="0 0 850 400">
+                <defs>
+                    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#cbd5e1" />
+                    </marker>
+                    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+                    </marker>
+                </defs>
+
+                <!-- Vùng mạng bên ngoài -->
+                <rect x="10" y="20" width="180" height="360" fill="#f8fafc" stroke="#e2e8f0" stroke-dasharray="5 5" rx="8" />
+                <text x="100" y="40" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="bold">INTERNET / CLIENTS</text>
+
+                <!-- Vùng mạng nội bộ -->
+                <rect x="440" y="20" width="390" height="360" fill="#f8fafc" stroke="#e2e8f0" stroke-dasharray="5 5" rx="8" />
+                <text x="635" y="40" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="bold">PRIVATE NETWORK / BACKEND</text>
+
+                <!-- Flow Lines -->
+                <g id="flow-lines">
+                    <!-- User A -> LB -->
+                    <path id="line-connect-a" class="line" d="M 170 110 L 260 160" marker-end="url(#arrow-gray)" />
+                    <!-- User B -> LB (Offline/Disconnect) -->
+                    <path id="line-connect-b" class="line line-dashed" d="M 170 290 L 260 210" />
+                    
+                    <!-- LB -> Node 1 -->
+                    <path id="line-lb-n1" class="line" d="M 400 160 L 460 110" marker-end="url(#arrow-gray)" />
+                    <!-- LB -> Node 2 -->
+                    <path id="line-lb-n2" class="line" d="M 400 210 L 460 290" marker-end="url(#arrow-gray)" />
+
+                    <!-- Node 1 -> Redis -->
+                    <path id="line-n1-redis" class="line line-dashed" d="M 600 110 L 660 110" marker-end="url(#arrow-gray)" />
+                    <!-- Node 1 -> DB -->
+                    <path id="line-n1-db" class="line line-dashed" d="M 600 110 C 630 110, 630 290, 660 290" marker-end="url(#arrow-gray)" />
+                    
+                    <!-- Redis -> Node 2 -->
+                    <path id="line-redis-n2" class="line line-dashed" d="M 730 140 C 730 290, 600 290, 600 290" marker-end="url(#arrow-gray)" />
+                </g>
+
+                <!-- Node: User A -->
+                <g transform="translate(30, 80)">
+                    <rect class="node-rect c-usr" width="140" height="60" />
+                    <rect class="badge-rect bg-usr" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">USR</text>
+                    <text class="node-text" x="50" y="24">User A</text>
+                    <text class="node-subtext" x="10" y="45">Trạng thái: Online</text>
+                </g>
+                
+                <!-- Node: User B -->
+                <g transform="translate(30, 260)" opacity="0.6">
+                    <rect class="node-rect c-usr" width="140" height="60" stroke-dasharray="4 4"/>
+                    <rect class="badge-rect bg-usr" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">USR</text>
+                    <text class="node-text" x="50" y="24">User B</text>
+                    <text class="node-subtext" x="10" y="45">Trạng thái: Offline</text>
+                </g>
+
+                <!-- Node: Load Balancer -->
+                <g transform="translate(260, 140)">
+                    <rect class="node-rect c-lb" width="140" height="90" />
+                    <rect class="badge-rect bg-lb" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">LB</text>
+                    <text class="node-text" x="50" y="24">Nginx / ALB</text>
+                    <text class="node-subtext" x="10" y="45">Cân bằng tải TCP</text>
+                    <text class="node-subtext" x="10" y="60">Giữ Upgrade Header</text>
+                    <text class="node-subtext" x="10" y="75">(Least Connections)</text>
+                </g>
+
+                <!-- Node: Node 1 -->
+                <g transform="translate(460, 80)">
+                    <rect class="node-rect c-app" width="140" height="60" />
+                    <rect class="badge-rect bg-app" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">APP</text>
+                    <text class="node-text" x="50" y="24">Node #1</text>
+                    <text class="node-subtext" x="10" y="45">Session của User A</text>
+                </g>
+
+                <!-- Node: Node 2 -->
+                <g transform="translate(460, 260)">
+                    <rect class="node-rect c-app" width="140" height="60" />
+                    <rect class="badge-rect bg-app" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">APP</text>
+                    <text class="node-text" x="50" y="24">Node #2</text>
+                    <text class="node-subtext" x="10" y="45">Spring WebFlux (Netty)</text>
+                </g>
+
+                <!-- Node: Redis -->
+                <g transform="translate(660, 80)">
+                    <rect class="node-rect c-rd" width="140" height="60" />
+                    <rect class="badge-rect bg-rd" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">RD</text>
+                    <text class="node-text" x="50" y="24">Redis Pub/Sub</text>
+                    <text class="node-subtext" x="10" y="45">Broker Channel chung</text>
+                </g>
+
+                <!-- Node: DB -->
+                <g transform="translate(660, 260)">
+                    <rect class="node-rect c-db" width="140" height="60" />
+                    <rect class="badge-rect bg-db" x="10" y="10" width="30" height="16" />
+                    <text class="badge-text" x="25" y="22" text-anchor="middle">DB</text>
+                    <text class="node-text" x="50" y="24">Cassandra / DB</text>
+                    <text class="node-subtext" x="10" y="45">Lưu tin nhắn Offline</text>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 20% Steps -->
+    <div class="panel">
+        <ul class="step-list">
+            <li class="step-item active" id="step1" onclick="activateStep(1)">
+                <div class="step-title">1. Mở kết nối & ulimit OS</div>
+                <div class="step-desc">Tăng giới hạn File Descriptors (`ulimit -n 1000000`). Load Balancer điều phối bằng thuật toán Least Connections.</div>
+            </li>
+            <li class="step-item" id="step2" onclick="activateStep(2)">
+                <div class="step-title">2. WebFlux & Non-blocking</div>
+                <div class="step-desc">Ứng dụng dùng Spring WebFlux (Netty) với Event Loop. Một thread có thể gánh hàng ngàn kết nối nhàn rỗi mà không treo RAM.</div>
+            </li>
+            <li class="step-item" id="step3" onclick="activateStep(3)">
+                <div class="step-title">3. Gửi tin & Publish (Redis)</div>
+                <div class="step-desc">User A gửi tin nhắn cho B. Node #1 nhận tin và Publish message đó vào Redis channel chung.</div>
+            </li>
+            <li class="step-item" id="step4" onclick="activateStep(4)">
+                <div class="step-title">4. Subscribe & Đẩy tin xuống</div>
+                <div class="step-desc">Node #2 (đang Subscribe Redis) nhận được tin, kiểm tra thấy User B đang kết nối tại máy mình -> đẩy qua WebSocket.</div>
+            </li>
+            <li class="step-item" id="step5" onclick="activateStep(5)">
+                <div class="step-title">5. Xử lý khi User Offline</div>
+                <div class="step-desc">Nếu B offline, tin nhắn được lưu vào Database ở trạng thái UNREAD và kích hoạt Push Notification (FCM/APNs).</div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Row 3: Footer -->
+<div class="footer">
+    <div class="footer-col">
+        <div class="footer-title">Điểm mạnh</div>
+        <div class="footer-content">
+            <ul>
+                <li><strong>Không tốn Thread:</strong> Nhờ kiến trúc Non-blocking I/O (WebFlux/Netty), hệ thống giải quyết vấn đề cạn kiệt Thread của Tomcat cũ.</li>
+                <li><strong>Scale ngang vô hạn:</strong> Dễ dàng cắm thêm Node mới vào sau Load Balancer.</li>
+                <li><strong>Tính nhất quán cao:</strong> Dữ liệu trạng thái đồng bộ mượt mà qua Redis Pub/Sub.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="footer-col">
+        <div class="footer-title">Lưu ý vận hành</div>
+        <div class="footer-content">
+            <ul>
+                <li><strong>Tầng Hệ điều hành:</strong> Bắt buộc cấu hình lại `ulimit -n` và các tham số `sysctl` liên quan đến `tcp_max_syn_backlog`, `TIME_WAIT`.</li>
+                <li><strong>Header Upgrade:</strong> Load Balancer phải được cấu hình cho phép truyền header <code>Connection: Upgrade</code> để duy trì TCP.</li>
+                <li><strong>Heartbeat (Ping/Pong):</strong> Cần cơ chế phát hiện ngắt mạng ngầm (Client chết nhưng OS chưa báo).</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer-col">
+        <div class="footer-title">Ví dụ thực tế</div>
+        <div class="footer-content">
+            <ul>
+                <li>Hệ thống Chat của các siêu ứng dụng (Zalo, MoMo).</li>
+                <li>Bảng giá chứng khoán realtime cập nhật liên tục hàng giây.</li>
+                <li><em>Ghi chú: Để biết chi tiết trả lời phỏng vấn, hãy xem file <code>QA.md</code>.</em></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    function activateStep(step) {
+        // Reset steps
+        document.querySelectorAll('.step-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+        
+        // Reset lines
+        document.querySelectorAll('.line').forEach(el => {
+            el.classList.remove('line-active');
+            if (!el.classList.contains('line-dashed')) {
+                el.setAttribute('marker-end', 'url(#arrow-gray)');
+            } else {
+                el.removeAttribute('marker-end'); // default dashed
+            }
+        });
+        
+        // Flow logic mapping
+        let activeLines = [];
+        if (step === 1) activeLines = ['line-connect-a', 'line-connect-b', 'line-lb-n1', 'line-lb-n2'];
+        if (step === 2) activeLines = ['line-lb-n1', 'line-lb-n2'];
+        if (step === 3) activeLines = ['line-connect-a', 'line-lb-n1', 'line-n1-redis'];
+        if (step === 4) activeLines = ['line-n1-redis', 'line-redis-n2']; 
+        if (step === 5) activeLines = ['line-n1-db', 'line-connect-b']; 
+        
+        activeLines.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) {
+                el.classList.add('line-active');
+                if (!el.classList.contains('line-dashed')) {
+                    el.setAttribute('marker-end', 'url(#arrow-blue)');
+                }
+            }
+        });
+    }
+    
+    // Init state
+    activateStep(1);
+</script>
+
+</body>
+</html>
