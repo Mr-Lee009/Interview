@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Gateway - System Design Pattern (Animated & Flow)</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --border-gold: #c2a642;
+            --text-main: #2b2b2b;
+            --text-gray: #555555;
+            --green-light: #e6eedf;
+            --green-med: #d2e3c9;
+            --green-dark: #4b8841;
+            --blue-light: #cde0f5;
+            --blue-med: #9ebde3;
+            --gray-light: #f4f4f4;
+            --gray-med: #888888;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            font-family: var(--font-main);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .card {
+            background-color: var(--bg-color);
+            width: 100%;
+            max-width: 850px;
+            border: 6px solid var(--border-gold);
+            padding: 40px 50px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .badge-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .badge {
+            display: flex;
+            border: 2px solid var(--text-main);
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            align-items: center;
+            width: fit-content;
+        }
+
+        .badge-number {
+            background-color: var(--green-light);
+            font-size: 32px;
+            font-weight: 800;
+            padding: 10px 20px;
+            border-right: 2px solid var(--text-main);
+        }
+
+        .badge-text {
+            padding: 0 15px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+        }
+
+        .header-line {
+            height: 4px;
+            background-color: var(--green-med);
+            width: 140px;
+            margin-top: 15px;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .header-right .bold {
+            color: var(--text-main);
+            font-size: 16px;
+        }
+
+        /* Title */
+        .title-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .title-section h1 {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .title-section p {
+            font-size: 22px;
+            font-style: italic;
+            color: var(--text-gray);
+        }
+
+        /* Diagram Layout */
+        .diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 50px;
+            gap: 10px;
+        }
+
+        .block-group {
+            border: 2px dashed;
+            border-radius: 12px;
+            padding: 20px 25px;
+            position: relative;
+            background-color: transparent;
+            z-index: 2; 
+        }
+
+        .group-title {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .block-group.clients {
+            border-color: var(--text-main);
+            padding-top: 50px;
+            background-color: white;
+        }
+        
+        .block-group.entry {
+            border-color: var(--green-dark);
+            padding-top: 50px;
+            background-color: #f8fbf6;
+        }
+
+        .block-group.services {
+            border-color: var(--blue-med);
+            padding-top: 50px;
+            background-color: #f4f8fd;
+        }
+
+        .box {
+            border: 2px solid var(--text-main);
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 15px;
+            min-width: 140px;
+            position: relative;
+        }
+
+        .box:last-child {
+            margin-bottom: 0;
+        }
+
+        .box.client-box { background-color: var(--gray-light); }
+        .box.gateway-box { background-color: var(--green-med); padding: 20px; min-width: 220px; }
+        .box.service-box { background-color: var(--blue-light); }
+
+        .gateway-subtext {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 8px;
+            color: var(--text-main);
+        }
+
+        /* Animation Styles */
+        .arrows {
+            display: flex;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .flow-line {
+            stroke-dasharray: 6, 4;
+            animation: flow-dashes 0.8s linear infinite;
+        }
+
+        @keyframes flow-dashes {
+            to { stroke-dashoffset: -10; }
+        }
+
+        .packet-in {
+            fill: var(--green-dark);
+            filter: drop-shadow(0 0 3px rgba(75, 136, 65, 0.8));
+        }
+
+        .packet-out {
+            fill: #3b82f6;
+            filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.8));
+        }
+
+        /* Text Content */
+        .text-content {
+            margin-bottom: 30px;
+        }
+
+        .text-section {
+            margin-bottom: 25px;
+        }
+
+        .text-section h3 {
+            color: var(--green-dark);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .text-section p {
+            font-size: 18px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        /* =========================================
+           MỚI THÊM: STEP-BY-STEP FLOW SECTION
+           ========================================= */
+        .step-flow-box {
+            background-color: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-left: 6px solid var(--blue-med);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 40px;
+        }
+
+        .step-flow-box h3 {
+            color: var(--blue-med);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            background-color: var(--text-main);
+            color: white;
+            min-width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 15px;
+            margin-top: 2px;
+        }
+
+        .step-text {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .step-text strong {
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        /* Interview Box */
+        .interview-box {
+            background-color: #f1f6ed;
+            border-left: 12px solid var(--green-dark);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 60px;
+        }
+
+        .interview-box h4 {
+            color: var(--green-dark);
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .interview-quote {
+            font-size: 20px;
+            font-weight: 700;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .interview-divider {
+            height: 1px;
+            background-color: #d1e0c9;
+            margin-bottom: 15px;
+            border: none;
+        }
+
+        .interview-footer {
+            font-size: 16px;
+            color: var(--text-gray);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-med);
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="badge-container">
+            <div class="badge">
+                <div class="badge-number">01</div>
+                <div class="badge-text">OF<br><br>07</div>
+            </div>
+            <div class="header-line"></div>
+        </div>
+        <div class="header-right">
+            PATTERN<br>
+            <span class="bold">SYSTEM DESIGN</span>
+        </div>
+    </div>
+
+    <div class="title-section">
+        <h1>API Gateway</h1>
+        <p>Your front door.</p>
+    </div>
+
+    <div class="diagram">
+        <div class="block-group clients">
+            <div class="group-title">Clients</div>
+            <div class="box client-box">Web client</div>
+            <div class="box client-box">Mobile app</div>
+        </div>
+
+        <div class="arrows">
+            <svg width="60" height="120" viewBox="0 0 60 120">
+                <defs>
+                    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                        <polygon points="0 0, 6 3, 0 6" fill="#2b2b2b"/>
+                    </marker>
+                </defs>
+                <path id="path-web" d="M 5 30 L 50 60" stroke="#2b2b2b" stroke-width="1.5" class="flow-line" marker-end="url(#arrowhead)"/>
+                <path id="path-mobile" d="M 5 90 L 50 60" stroke="#2b2b2b" stroke-width="1.5" class="flow-line" marker-end="url(#arrowhead)"/>
+                
+                <circle r="3.5" class="packet-in">
+                    <animateMotion dur="1.5s" repeatCount="indefinite"><mpath href="#path-web"/></animateMotion>
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.5s" repeatCount="indefinite"/>
+                </circle>
+
+                <circle r="3.5" class="packet-in">
+                    <animateMotion dur="1.5s" begin="0.75s" repeatCount="indefinite"><mpath href="#path-mobile"/></animateMotion>
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.5s" begin="0.75s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+        </div>
+
+        <div class="block-group entry" id="gateway-block">
+            <div class="group-title">Entry point</div>
+            <div class="box gateway-box">
+                API Gateway
+                <span class="gateway-subtext">Auth · Rate limiting · Routing</span>
+            </div>
+        </div>
+
+        <div class="arrows">
+            <svg width="60" height="150" viewBox="0 0 60 150">
+                <path id="path-llm" d="M 5 75 L 50 35" stroke="#2b2b2b" stroke-width="1.5" class="flow-line" marker-end="url(#arrowhead)"/>
+                <path id="path-vector" d="M 5 75 L 50 75" stroke="#2b2b2b" stroke-width="1.5" class="flow-line" marker-end="url(#arrowhead)"/>
+                <path id="path-embed" d="M 5 75 L 50 115" stroke="#2b2b2b" stroke-width="1.5" class="flow-line" marker-end="url(#arrowhead)"/>
+
+                <circle r="3.5" class="packet-out">
+                    <animateMotion dur="1.5s" begin="1.3s" repeatCount="indefinite"><mpath href="#path-llm"/></animateMotion>
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.5s" begin="1.3s" repeatCount="indefinite"/>
+                </circle>
+
+                <circle r="3.5" class="packet-out">
+                    <animateMotion dur="1.5s" begin="0.5s" repeatCount="indefinite"><mpath href="#path-vector"/></animateMotion>
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
+                </circle>
+
+                <circle r="3.5" class="packet-out">
+                    <animateMotion dur="1.5s" begin="2s" repeatCount="indefinite"><mpath href="#path-embed"/></animateMotion>
+                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="1.5s" begin="2s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+        </div>
+
+        <div class="block-group services">
+            <div class="group-title">Services</div>
+            <div class="box service-box">LLM service</div>
+            <div class="box service-box">Vector DB</div>
+            <div class="box service-box">Embedding API</div>
+        </div>
+    </div>
+
+    <div class="text-content">
+        <div class="text-section">
+            <h3>WHAT IT DOES</h3>
+            <p>Single entry point that handles auth, routing, and protocol translation before anything reaches your model.</p>
+        </div>
+        <div class="text-section">
+            <h3>WHY IT MATTERS FOR AI SYSTEMS</h3>
+            <p>Without it, every client needs to know every service. With it, you authenticate once, route smartly, enforce policies — before a single GPU cycle is spent.</p>
+        </div>
+    </div>
+
+    <div class="step-flow-box">
+        <h3>DETAILED REQUEST FLOW (Example to LLM Service)</h3>
+        
+        <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-text"><strong>Client Request:</strong> User sends a prompt (e.g., "Summarize article") via the Web Client or Mobile App.</div>
+        </div>
+        
+        <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-text"><strong>Gateway Interception:</strong> The API Gateway receives the request. It validates the user's Auth token and checks if they have exceeded their Rate Limit.</div>
+        </div>
+        
+        <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-text"><strong>Routing:</strong> Once validated, the Gateway identifies the required service and routes the payload to the internal <em>LLM Service</em>.</div>
+        </div>
+        
+        <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-text"><strong>Service Execution:</strong> The LLM Service processes the prompt, generates the AI response, and sends it back to the Gateway.</div>
+        </div>
+        
+        <div class="step-item">
+            <div class="step-number">5</div>
+            <div class="step-text"><strong>Final Response:</strong> The Gateway formats the output and delivers the final result securely back to the Client.</div>
+        </div>
+    </div>
+
+    <div class="interview-box">
+        <h4><span style="font-size: 10px;">▶</span> INTERVIEW SIGNAL</h4>
+        <p class="interview-quote">"Walk me through how a request flows through your system."</p>
+        <hr class="interview-divider">
+        <p class="interview-footer">→ Good to start with the gateway, then walk through to the model.</p>
+    </div>
+
+    <div class="footer">
+        <span>1/7</span>
+        <span>@jamwithai · Jam with AI</span>
+    </div>
+</div>
+
+</body>
+</html>

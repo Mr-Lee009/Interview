@@ -1,0 +1,43 @@
+networks:
+  kafka-cluster-net:
+    driver: bridge
+
+services:
+  kafka-1:
+    # ... (giữ nguyên cấu hình cũ)
+  kafka-2:
+    # ... (giữ nguyên cấu hình cũ)
+  kafka-3:
+    # ... (giữ nguyên cấu hình cũ)
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    networks:
+      - kafka-cluster-net
+    # KHÔNG MỞ CỔNG RA NGOÀI NỮA ĐỂ NGINX QUẢN LÝ
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=My-Production-Cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka-1:29092,kafka-2:29092,kafka-3:29092
+
+  # =============================================================
+  # THÊM MỚI SERVICE NGINX API GATEWAY
+  # =============================================================
+  nginx-gateway:
+    image: nginx:latest
+    container_name: nginx-gateway
+    networks:
+      - kafka-cluster-net
+    ports:
+      - "80:80" # Chỉ mở duy nhất cổng 80 ra bên ngoài thế giới
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro # Gắn file cấu hình vào container
+    depends_on:
+      - kafka-ui
+    # Kích hoạt tính năng cho phép Nginx trong Docker gọi được cổng 8080 của Java dưới máy host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
