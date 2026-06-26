@@ -1,0 +1,379 @@
+Chào bạn, tôi đã cập nhật lại file `index.html` bên dưới để chuyển đổi biểu đồ Clean Architecture thành giao diện **Tab tương tác** (với 4 tầng: *Entities, Use Cases, Interface Adapters, Frameworks & Drivers*), đồng thời giữ nguyên luồng trực quan và sạch sẽ như bạn yêu cầu.
+
+Bạn có thể lưu đoạn mã này thành file `index.html` và mở bằng bất kỳ trình duyệt nào:
+
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Architecture - Các tầng kiến trúc</title>
+    <style>
+        :root {
+            --color-entities: #ffeb3b;     /* Vàng */
+            --color-usecases: #f44336;     /* Đỏ */
+            --color-adapters: #4caf50;     /* Xanh lá */
+            --color-frameworks: #2196f3;   /* Xanh dương */
+            --text-dark: #2b2b2b;
+            --text-light: #ffffff;
+            --bg-light: #f4f4f0;
+            --border-gold: #c2a642;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 900px;
+            border: 6px solid var(--border-gold);
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header trang trí */
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        .badge {
+            display: flex;
+            border: 2px solid var(--text-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            align-items: center;
+        }
+
+        .badge-number {
+            background-color: #e6eedf;
+            font-size: 32px;
+            font-weight: 800;
+            padding: 10px 20px;
+            border-right: 2px solid var(--text-dark);
+        }
+
+        .badge-text {
+            padding: 0 15px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+        }
+
+        .title-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title-section h1 {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .title-section p {
+            font-size: 18px;
+            font-style: italic;
+            color: #555555;
+        }
+
+        /* Container chứa biểu đồ và tab nội dung */
+        .content-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+        }
+
+        /* CSS Biểu đồ vòng tròn */
+        .diagram-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; 
+            padding-top: 12px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .circle:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            z-index: 10 !important;
+        }
+
+        .circle-frameworks { width: 400px; height: 400px; background-color: var(--color-frameworks); color: var(--text-light); z-index: 1; border: 2px solid var(--text-dark); }
+        .circle-adapters   { width: 300px; height: 300px; background-color: var(--color-adapters); color: var(--text-light); z-index: 2; border: 2px solid var(--text-dark); }
+        .circle-usecases   { width: 200px; height: 200px; background-color: var(--color-usecases); color: var(--text-light); z-index: 3; border: 2px solid var(--text-dark); }
+        .circle-entities   { width: 100px; height: 100px; background-color: var(--color-entities); color: var(--text-dark); z-index: 4; align-items: center; padding-top: 0; border: 2px solid var(--text-dark); }
+
+        .dependency-arrow {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            border-top: 3px dashed var(--text-dark);
+            z-index: 6;
+            pointer-events: none;
+        }
+        
+        .dependency-arrow::after {
+            content: '➤';
+            position: absolute;
+            right: 15px;
+            top: -16px;
+            font-size: 24px;
+            color: var(--text-dark);
+            background: #ffffff;
+        }
+
+        .dependency-label {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-22px);
+            background: #ffffff;
+            padding: 0 8px;
+            font-weight: bold;
+            z-index: 7;
+            font-size: 12px;
+            border: 1px solid var(--text-dark);
+            border-radius: 4px;
+        }
+
+        /* CSS Tab điều hướng */
+        .tabs-container {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #cccccc;
+            margin-bottom: 20px;
+            gap: 4px;
+            background: #f9f9f9;
+            border-radius: 6px 6px 0 0;
+            padding: 4px 4px 0 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #666666;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            border-radius: 6px 6px 0 0;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab-btn:hover {
+            background-color: #eeeeee;
+            color: var(--text-dark);
+        }
+
+        /* Active tabs style */
+        .tab-btn[data-target="tab-entities"].active { color: #8c8018; border-bottom-color: var(--color-entities); background: white; }
+        .tab-btn[data-target="tab-usecases"].active { color: var(--color-usecases); border-bottom-color: var(--color-usecases); background: white; }
+        .tab-btn[data-target="tab-adapters"].active { color: var(--color-adapters); border-bottom-color: var(--color-adapters); background: white; }
+        .tab-btn[data-target="tab-frameworks"].active { color: var(--color-frameworks); border-bottom-color: var(--color-frameworks); background: white; }
+
+        /* CSS Khối nội dung tab */
+        .tab-pane {
+            display: none;
+            background: #ffffff;
+            border: 2px solid var(--text-dark);
+            border-radius: 0 0 8px 8px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-top: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-pane#tab-entities { border-left: 8px solid var(--color-entities); }
+        .tab-pane#tab-usecases { border-left: 8px solid var(--color-usecases); }
+        .tab-pane#tab-adapters { border-left: 8px solid var(--color-adapters); }
+        .tab-pane#tab-frameworks { border-left: 8px solid var(--color-frameworks); }
+
+        .layer-title {
+            margin-top: 0;
+            font-size: 18px;
+            border-bottom: 1px solid #eeeeee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        ul { padding-left: 20px; margin-bottom: 0; }
+        li { margin-bottom: 10px; line-height: 1.5; font-size: 14px; }
+
+        @media (max-width: 768px) {
+            .diagram-container { transform: scale(0.85); margin-bottom: -20px; }
+            .tabs { flex-wrap: wrap; }
+            .tab-btn { min-width: 45%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="badge">
+            <div class="badge-number">CLEAN</div>
+            <div class="badge-text">ARCHITECTURE<br>DIAGRAM</div>
+        </div>
+    </div>
+
+    <div class="title-section">
+        <h1>Clean Architecture</h1>
+        <p>Quy tắc phụ thuộc: Hướng từ ngoài vào trong</p>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="diagram-container">
+            <div class="dependency-label">Dependency Rule</div>
+            <div class="dependency-arrow"></div>
+
+            <div class="circle circle-frameworks" onclick="openTab('tab-frameworks', event)">
+                Frameworks & Drivers<br>(Web, DB, UI, External Interfaces)
+            </div>
+            
+            <div class="circle circle-adapters" onclick="openTab('tab-adapters', event)">
+                Interface Adapters<br>(Controllers, Gateways)
+            </div>
+            
+            <div class="circle circle-usecases" onclick="openTab('tab-usecases', event)">
+                Use Cases<br>(Logic Ứng dụng)
+            </div>
+            
+            <div class="circle circle-entities" onclick="openTab('tab-entities', event)">
+                <br>Entities<br>(Logic Lõi)
+            </div>
+        </div>
+
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-target="tab-entities" onclick="openTab('tab-entities')">1. Entities</button>
+                <button class="tab-btn" data-target="tab-usecases" onclick="openTab('tab-usecases')">2. Use Cases</button>
+                <button class="tab-btn" data-target="tab-adapters" onclick="openTab('tab-adapters')">3. Adapters</button>
+                <button class="tab-btn" data-target="tab-frameworks" onclick="openTab('tab-frameworks')">4. Frameworks</button>
+            </div>
+
+            <div id="tab-entities" class="tab-pane active">
+                <h3 class="layer-title">Tầng Entities (Thực thể / Cốt lõi nghiệp vụ)</h3>
+                <p>Nằm ở trung tâm nhất, chứa các quy tắc kinh doanh cốt lõi và tổng quát nhất của hệ thống (Enterprise Business Rules).</p>
+                <ul>
+                    <li><strong>Bao gồm:</strong> Các Class mô hình dữ liệu lõi (ví dụ: `Room`, `User`, `Invoice`).</li>
+                    <li><strong>Đặc điểm:</strong> Độc lập hoàn toàn với mọi công nghệ, framework hay cơ sở dữ liệu bên ngoài.</li>
+                </ul>
+            </div>
+
+            <div id="tab-usecases" class="tab-pane">
+                <h3 class="layer-title">Tầng Use Cases (Trường hợp sử dụng / Logic ứng dụng)</h3>
+                <p>Bao bọc tầng Entities. Chứa các quy tắc nghiệp vụ đặc thù của riêng ứng dụng phần mềm này (Application Business Rules).</p>
+                <ul>
+                    <li><strong>Bao gồm:</strong> Các xử lý nghiệp vụ cụ thể. Ví dụ: `RentRoomUseCase`, `CalculateInvoiceUseCase`.</li>
+                    <li><strong>Nhiệm vụ:</strong> Điều phối dòng chảy dữ liệu vào/ra khỏi Entities để thực hiện các yêu cầu nghiệp vụ.</li>
+                </ul>
+            </div>
+
+            <div id="tab-adapters" class="tab-pane">
+                <h3 class="layer-title">Tầng Interface Adapters (Bộ chuyển đổi)</h3>
+                <p>Đóng vai trò phiên dịch viên chuyển đổi dữ liệu từ thế giới bên ngoài (Database, HTTP) sang định dạng phù hợp với Use Cases/Entities và ngược lại.</p>
+                <ul>
+                    <li><strong>Bao gồm:</strong> Controllers, Presenters, Gateways (Repositories).</li>
+                    <li><strong>Nhiệm vụ:</strong> Nhận request từ Web $\rightarrow$ chuyển thành object nội bộ $\rightarrow$ gọi Use Case. Lấy kết quả từ Use Case $\rightarrow$ chuyển đổi thành JSON/SQL.</li>
+                </ul>
+            </div>
+
+            <div id="tab-frameworks" class="tab-pane">
+                <h3 class="layer-title">Tầng Frameworks & Drivers (Công nghệ ngoài cùng)</h3>
+                <p>Nơi chứa tất cả các chi tiết công nghệ, framework, cơ sở dữ liệu, UI, thiết bị.</p>
+                <ul>
+                    <li><strong>Bao gồm:</strong> MySQL, MongoDB, Spring Boot, React, thư viện gửi Email/SMS.</li>
+                    <li><strong>Nhiệm vụ:</strong> Chỉ dùng để kết dính các công nghệ lại. Tầng này dễ dàng thay thế nhất mà không làm ảnh hưởng đến 3 vòng tròn lõi bên trong.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTab(tabId, event) {
+        // Ngăn chặn việc click vào vòng tròn làm lan truyền sự kiện (nếu có)
+        if (event) {
+            event.stopPropagation();
+        }
+
+        // 1. Ẩn tất cả các khối nội dung tab
+        const panes = document.querySelectorAll('.tab-pane');
+        panes.forEach(pane => pane.classList.remove('active'));
+
+        // 2. Bỏ trạng thái active của toàn bộ các nút tab
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(btn => btn.classList.remove('active'));
+
+        // 3. Kích hoạt tab được chọn
+        document.getElementById(tabId).classList.add('active');
+        document.querySelector(`.tab-btn[data-target="${tabId}"]`).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
+
+```
