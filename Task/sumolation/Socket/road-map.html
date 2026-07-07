@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Learning Roadmap</title>
+    <style>
+        :root {
+            --bg: #eef4ff;
+            --panel: #ffffff;
+            --text: #10243e;
+            --muted: #60758b;
+            --line: #dbe5f0;
+            --primary: #2563eb;
+            --ok: #16a34a;
+            --warn: #d97706;
+            --accent1: #7c3aed;
+            --accent2: #0891b2;
+            --accent3: #be185d;
+            --accent4: #0f766e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: rgba(255,255,255,0.94);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 34px;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            margin: 0;
+            max-width: 900px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .tag {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.94);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 22px;
+        }
+
+        .roadmap {
+            display: grid;
+            gap: 14px;
+        }
+
+        .step {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #fff;
+            text-decoration: none;
+            color: inherit;
+            transition: 0.2s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+        }
+
+        .step-no {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .step h3 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .step p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 8px;
+            border-radius: 999px;
+        }
+
+        .badge.doc { background: #dbeafe; color: #1d4ed8; }
+        .badge.demo { background: #dcfce7; color: #166534; }
+        .badge.case { background: #fef3c7; color: #92400e; }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 12px;
+        }
+
+        .checklist li {
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff;
+        }
+
+        .checklist strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .checklist span {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .note {
+            margin-top: 18px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            padding: 14px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .legend {
+            display: grid;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .legend-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            margin-top: 4px;
+            flex: 0 0 auto;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <h1>Roadmap học Socket / WebSocket</h1>
+        <p class="subtitle">
+            Roadmap này được dựng theo các case hiện có trong thư mục <code>Task/sumolation/Socket</code>.
+            Mình đi theo thứ tự từ xác thực kết nối, scale nhiều node, reconnect/sync lại message, rồi tới bài toán lớn hơn là chat hệ thống quy mô cao.
+        </p>
+        <div class="tags">
+            <span class="tag">#WebSocket</span>
+            <span class="tag">#Authentication</span>
+            <span class="tag">#MultiNode</span>
+            <span class="tag">#Reconnect</span>
+            <span class="tag">#100kConnections</span>
+        </div>
+    </section>
+
+    <div class="grid">
+        <section class="panel">
+            <h2>Lộ trình theo case</h2>
+            <div class="roadmap">
+                <a class="step" href="./Q7/index.html">
+                    <div class="step-no" style="background: var(--accent1);">Q7</div>
+                    <div>
+                        <h3>Xác thực khi mở WebSocket</h3>
+                        <p>
+                            Hiểu cách xác thực user ở lúc handshake bằng <code>session cookie</code>,
+                            <code>JWT</code>, <code>header token</code> hoặc <code>query param</code>.
+                            Đây là nền tảng trước khi đi tiếp sang phân quyền và scale.
+                        </p>
+                        <div class="meta">
+                            <span class="badge case">Case nền tảng</span>
+                            <span class="badge doc">Có doc.md</span>
+                            <span class="badge demo">Có index.html</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a class="step" href="./Q8/index.html">
+                    <div class="step-no" style="background: var(--accent2);">Q8</div>
+                    <div>
+                        <h3>Broadcast khi có nhiều server</h3>
+                        <p>
+                            Khi hệ thống có nhiều instance, một node không thể tự biết client ở node khác.
+                            Case này giúp thấy rõ vì sao cần <code>Redis Pub/Sub</code>, <code>Kafka</code> hoặc <code>RabbitMQ</code> để đồng bộ event giữa các node.
+                        </p>
+                        <div class="meta">
+                            <span class="badge case">Case scale ngang</span>
+                            <span class="badge doc">Có doc.md</span>
+                            <span class="badge demo">Có index.html</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a class="step" href="./Q10/index.html">
+                    <div class="step-no" style="background: var(--accent3);">Q10</div>
+                    <div>
+                        <h3>Reconnect và đồng bộ message bị lỡ</h3>
+                        <p>
+                            Reconnect chỉ giúp mở lại kết nối, chưa giải quyết mất dữ liệu.
+                            Case này đi vào <code>lastMessageId</code>, replay message, chống mất bản tin khi client offline rồi kết nối lại.
+                        </p>
+                        <div class="meta">
+                            <span class="badge case">Case reliability</span>
+                            <span class="badge doc">Có doc.md</span>
+                            <span class="badge demo">Có index.html</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a class="step" href="./Q11/index.html">
+                    <div class="step-no" style="background: var(--accent4);">Q11</div>
+                    <div>
+                        <h3>Scale chat lên 100.000 kết nối</h3>
+                        <p>
+                            Đây là case tổng hợp: giữ nhiều connection, đồng bộ message giữa nhiều Spring Boot node,
+                            lưu offline message và tổ chức kiến trúc để không dồn toàn bộ state vào một instance.
+                        </p>
+                        <div class="meta">
+                            <span class="badge case">Case kiến trúc lớn</span>
+                            <span class="badge doc">Có doc.md</span>
+                            <span class="badge demo">Có index.html</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="note">
+                <strong>Gợi ý thứ tự học:</strong> nên đi từ <code>Q7</code> → <code>Q8</code> → <code>Q10</code> → <code>Q11</code>.
+                Cách này giúp mình xây nền trước, rồi mới nối sang bài toán multi-node, reliability và cuối cùng là scale lớn.
+            </div>
+        </section>
+
+        <aside class="panel">
+            <h2>Điểm cần nắm</h2>
+            <ul class="checklist">
+                <li>
+                    <strong>1. Auth ở handshake</strong>
+                    <span>WebSocket thường xác thực 1 lần khi mở kết nối, sau đó dùng session/context đã bind để xử lý message.</span>
+                </li>
+                <li>
+                    <strong>2. Multi-node cần broker</strong>
+                    <span>Nếu nhiều node mà chỉ broadcast local trong RAM, client ở node khác sẽ không nhận được event.</span>
+                </li>
+                <li>
+                    <strong>3. Reconnect chưa đủ</strong>
+                    <span>Client phải báo mốc cuối cùng đã nhận để server replay phần message còn thiếu.</span>
+                </li>
+                <li>
+                    <strong>4. Scale lớn phải tách trách nhiệm</strong>
+                    <span>Tách riêng xử lý kết nối, phân phối message và lưu trữ message để tránh một node ôm quá nhiều việc.</span>
+                </li>
+            </ul>
+
+            <h2 style="margin-top: 20px;">Legend</h2>
+            <div class="legend">
+                <div class="legend-row">
+                    <span class="legend-dot" style="background: var(--accent1);"></span>
+                    <div><strong>Q7</strong><br><span style="color: var(--muted);">Authentication và handshake</span></div>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-dot" style="background: var(--accent2);"></span>
+                    <div><strong>Q8</strong><br><span style="color: var(--muted);">Broadcast qua nhiều node</span></div>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-dot" style="background: var(--accent3);"></span>
+                    <div><strong>Q10</strong><br><span style="color: var(--muted);">Reconnect và replay message</span></div>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-dot" style="background: var(--accent4);"></span>
+                    <div><strong>Q11</strong><br><span style="color: var(--muted);">Kiến trúc chat quy mô lớn</span></div>
+                </div>
+            </div>
+
+            <div class="note" style="margin-top: 20px;">
+                <strong>Lưu ý:</strong> file <code>Task/sumolation/Socket/doc.md</code> hiện đang trống,
+                nên roadmap này được dựng theo các case folder đang tồn tại. Nếu bạn muốn, mình có thể làm tiếp bước sau là
+                cập nhật luôn <code>doc.md</code> gốc thành bản mục lục đồng bộ với roadmap này.
+            </div>
+        </aside>
+    </div>
+</div>
+</body>
+</html>

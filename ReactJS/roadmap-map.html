@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReactJS Roadmap 30 Ngày</title>
+    <style>
+        :root {
+            --bg: #eef6ff;
+            --panel: #ffffff;
+            --text: #10243e;
+            --muted: #60758b;
+            --line: #dbe5f0;
+            --primary: #2563eb;
+            --stage1: #0f766e;
+            --stage2: #7c3aed;
+            --stage3: #ea580c;
+            --stage4: #be185d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 34px;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            margin: 0;
+            max-width: 920px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .tag {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 22px;
+        }
+
+        .panel ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+            line-height: 1.55;
+        }
+
+        .stages {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .stage {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #fff;
+            padding: 18px;
+        }
+
+        .stage h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .stage p {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .stage .badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 8px;
+            border-radius: 999px;
+            color: #fff;
+        }
+
+        .stage ul {
+            margin-top: 10px;
+            padding-left: 18px;
+        }
+
+        .roadmap {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .week {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #fff;
+            padding: 18px;
+        }
+
+        .week h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+
+        .week p {
+            margin: 0 0 12px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .day-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .day {
+            background: #f8fafc;
+            border: 1px solid #e7eef6;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .day strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .day span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .note {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            padding: 14px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .check {
+            display: inline-block;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 8px;
+            border-radius: 999px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1040px) {
+            .summary,
+            .stages,
+            .roadmap,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <h1>Lộ trình học ReactJS chi tiết - 30 ngày</h1>
+        <p class="subtitle">
+            Roadmap này bám theo nội dung trong <code>ReactJS/doc.md</code>: đi từ nền JavaScript cần thiết,
+            vào React core, hooks, router, state management, form, testing, tối ưu và kết thúc bằng 3 mini project thực tế.
+        </p>
+        <div class="tags">
+            <span class="tag">#ReactJS</span>
+            <span class="tag">#30Days</span>
+            <span class="tag">#Hooks</span>
+            <span class="tag">#Router</span>
+            <span class="tag">#StateManagement</span>
+            <span class="tag">#Testing</span>
+            <span class="tag">#Deploy</span>
+        </div>
+    </section>
+
+    <section class="summary">
+        <div class="panel">
+            <h2>Mục tiêu sau 30 ngày</h2>
+            <ul>
+                <li>Hiểu React từ cơ bản đến trung cấp.</li>
+                <li>Tự xây dựng được 3 dự án thực tế: <code>Todo App</code>, <code>Product Dashboard</code>, <code>Mini E-commerce Frontend</code>.</li>
+                <li>Viết component theo hướng tái sử dụng, dễ maintain.</li>
+                <li>Biết test, optimize và deploy lên Vercel.</li>
+            </ul>
+        </div>
+
+        <div class="panel">
+            <h2>Cách học mỗi ngày</h2>
+            <ul>
+                <li><strong>30 phút:</strong> học lý thuyết</li>
+                <li><strong>60-90 phút:</strong> code theo bài</li>
+                <li><strong>30 phút:</strong> tự làm lại không nhìn tài liệu</li>
+                <li><strong>10 phút:</strong> ghi note "hôm nay học được gì"</li>
+            </ul>
+            <div class="note" style="margin-top: 12px;">
+                Tổng thời gian khuyến nghị: <strong>2-3 giờ/ngày</strong>.
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-bottom: 18px;">
+        <h2>Day 0 - Chuẩn bị trước khi vào React</h2>
+        <div class="check">Node.js LTS</div>
+        <div class="check">VS Code</div>
+        <div class="check">ESLint</div>
+        <div class="check">Prettier</div>
+        <div class="check">Git + GitHub</div>
+        <div class="check">ES6+</div>
+        <ul style="margin-top: 10px;">
+            <li>Ôn nhanh: <code>let/const</code>, arrow function, destructuring.</li>
+            <li>Ôn <code>map/filter/reduce</code>, <code>Promise</code>, <code>async/await</code>.</li>
+            <li>Tạo repo học tập: <code>react-30days</code>.</li>
+            <li>Cấu hình Prettier + ESLint cơ bản.</li>
+        </ul>
+    </section>
+
+    <section class="stages">
+        <div class="stage">
+            <span class="badge" style="background: var(--stage1);">Ngày 1-7</span>
+            <h3>Giai đoạn 1 - Nền tảng</h3>
+            <p>Hiểu JSX, component, props, state, event và tạo được app React có cấu trúc rõ ràng.</p>
+            <ul>
+                <li>Functional component</li>
+                <li>Props một chiều</li>
+                <li><code>useState</code></li>
+                <li>Render list + key</li>
+                <li>Form control cơ bản</li>
+            </ul>
+        </div>
+
+        <div class="stage">
+            <span class="badge" style="background: var(--stage2);">Ngày 8-14</span>
+            <h3>Giai đoạn 2 - React core nâng cao</h3>
+            <p>Nắm lifecycle qua <code>useEffect</code>, custom hook và tối ưu render cơ bản.</p>
+            <ul>
+                <li>Gọi API</li>
+                <li>Loading / error / data state</li>
+                <li>Custom hook như <code>useFetch</code></li>
+                <li><code>useMemo</code>, <code>useCallback</code></li>
+            </ul>
+        </div>
+
+        <div class="stage">
+            <span class="badge" style="background: var(--stage3);">Ngày 15-21</span>
+            <h3>Giai đoạn 3 - Hệ sinh thái React</h3>
+            <p>Đi vào router, state management, form và cách tổ chức module theo feature.</p>
+            <ul>
+                <li>React Router</li>
+                <li>Context API / Redux Toolkit</li>
+                <li>React Hook Form + Zod/Yup</li>
+                <li>Feature-based structure</li>
+            </ul>
+        </div>
+
+        <div class="stage">
+            <span class="badge" style="background: var(--stage4);">Ngày 22-30</span>
+            <h3>Giai đoạn 4 - Production mindset</h3>
+            <p>Hoàn thiện dự án như một flow gần thực tế: test, optimize, deploy và README.</p>
+            <ul>
+                <li>Jest + React Testing Library</li>
+                <li>Lazy loading, memoization</li>
+                <li>Deploy Vercel</li>
+                <li>Mock interview React</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Lịch học 30 ngày theo tuần</h2>
+        <div class="roadmap">
+            <div class="week">
+                <h3>Tuần 1 - React căn bản</h3>
+                <p>Đi từ setup, JSX, component, props, state, event tới mini project Todo App.</p>
+                <div class="day-list">
+                    <div class="day"><strong>Day 1</strong><span>React là gì, Virtual DOM, SPA vs MPA, setup với Vite.</span></div>
+                    <div class="day"><strong>Day 2</strong><span>JSX và functional component, tách UI thành nhiều component.</span></div>
+                    <div class="day"><strong>Day 3</strong><span>Props, children và component reusability.</span></div>
+                    <div class="day"><strong>Day 4</strong><span><code>useState</code>, immutable update, counter và toggle theme.</span></div>
+                    <div class="day"><strong>Day 5</strong><span>Event handling, conditional rendering, login UI giả lập.</span></div>
+                    <div class="day"><strong>Day 6</strong><span>Render list, filter list, thêm/xóa/đánh dấu task.</span></div>
+                    <div class="day"><strong>Day 7</strong><span>Mini Project 1 - Todo App.</span></div>
+                </div>
+            </div>
+
+            <div class="week">
+                <h3>Tuần 2 - Hooks và API</h3>
+                <p>Tập trung vào <code>useEffect</code>, gọi API, <code>useRef</code>, custom hook và tối ưu render.</p>
+                <div class="day-list">
+                    <div class="day"><strong>Day 8</strong><span><code>useEffect</code> cơ bản, side effects, localStorage.</span></div>
+                    <div class="day"><strong>Day 9</strong><span>Fetch/Axios, loading/error state, tìm kiếm user.</span></div>
+                    <div class="day"><strong>Day 10</strong><span>Cleanup function, debounce search, tránh gọi API lặp.</span></div>
+                    <div class="day"><strong>Day 11</strong><span><code>useRef</code>, auto focus, stopwatch.</span></div>
+                    <div class="day"><strong>Day 12</strong><span>Custom hooks như <code>useLocalStorage</code>, <code>useFetch</code>.</span></div>
+                    <div class="day"><strong>Day 13</strong><span><code>useMemo</code>, <code>useCallback</code>, tối ưu list lớn.</span></div>
+                    <div class="day"><strong>Day 14</strong><span>Mini Project 2 - Product Dashboard.</span></div>
+                </div>
+            </div>
+
+            <div class="week">
+                <h3>Tuần 3 - Router, Form, State Management</h3>
+                <p>Đi sâu vào router, global state, validation form và cách tổ chức code theo feature.</p>
+                <div class="day-list">
+                    <div class="day"><strong>Day 15</strong><span>React Router cơ bản: Routes, Link, NavLink.</span></div>
+                    <div class="day"><strong>Day 16</strong><span><code>useParams</code>, <code>useNavigate</code>, nested routes.</span></div>
+                    <div class="day"><strong>Day 17</strong><span>Context API cho auth, theme, cart.</span></div>
+                    <div class="day"><strong>Day 18</strong><span>Redux Toolkit cơ bản và chuyển cart từ Context sang Redux.</span></div>
+                    <div class="day"><strong>Day 19</strong><span>React Hook Form + Zod/Yup.</span></div>
+                    <div class="day"><strong>Day 20</strong><span>Styling với CSS Modules, Tailwind hoặc styled-components.</span></div>
+                    <div class="day"><strong>Day 21</strong><span>Refactor theo feature-based architecture.</span></div>
+                </div>
+            </div>
+
+            <div class="week">
+                <h3>Tuần 4 - Test, Optimize, Deploy</h3>
+                <p>Hoàn thiện mindset production: test, performance, auth flow, deploy và mock interview.</p>
+                <div class="day-list">
+                    <div class="day"><strong>Day 22</strong><span>Jest + React Testing Library cơ bản.</span></div>
+                    <div class="day"><strong>Day 23</strong><span>Mock API, test loading/success/error.</span></div>
+                    <div class="day"><strong>Day 24</strong><span><code>React.memo</code>, lazy loading, Suspense, Lighthouse.</span></div>
+                    <div class="day"><strong>Day 25</strong><span>Error Boundary và fallback UI.</span></div>
+                    <div class="day"><strong>Day 26</strong><span>Authentication flow frontend, Protected Route, JWT mock.</span></div>
+                    <div class="day"><strong>Day 27-28</strong><span>Mini Project 3 - E-commerce Frontend.</span></div>
+                    <div class="day"><strong>Day 29-30</strong><span>Deploy Vercel, README, tổng ôn và mock interview.</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="footer-grid">
+        <div class="panel">
+            <h2>Thứ tự ưu tiên học</h2>
+            <ul>
+                <li>JavaScript ES6+ vững</li>
+                <li>JSX và Component</li>
+                <li>Props, State, Event</li>
+                <li><code>useEffect</code> và data fetching</li>
+                <li>Router</li>
+                <li>Context API / Redux Toolkit</li>
+                <li>Form + validation</li>
+                <li>Testing</li>
+                <li>Performance optimization</li>
+                <li>Deploy + project structure</li>
+            </ul>
+        </div>
+
+        <div class="panel">
+            <h2>Tiêu chí đánh giá</h2>
+            <ul>
+                <li>Tự tạo app từ số 0 mà không cần copy video.</li>
+                <li>Giải thích được vì sao dùng <code>useEffect</code>, <code>useMemo</code>, <code>useCallback</code>.</li>
+                <li>Biết tách component và folder theo feature.</li>
+                <li>Deploy được app lên Vercel.</li>
+                <li>Tự tin trả lời câu hỏi phỏng vấn React cơ bản đến trung cấp.</li>
+            </ul>
+        </div>
+
+        <div class="panel">
+            <h2>Bonus để không bỏ cuộc</h2>
+            <ul>
+                <li>Cuối mỗi tuần review code và ghi 5 điều học được.</li>
+                <li>Ghi lại 3 điểm chưa rõ để học bù tuần sau.</li>
+                <li>Mỗi ngày commit ít nhất 1 lần lên GitHub.</li>
+                <li>Nếu bận, ưu tiên theo thứ tự: Hooks -> Router -> State -> Form -> Test -> Deploy.</li>
+            </ul>
+            <div class="note" style="margin-top: 12px;">
+                Nếu muốn học chắc hơn, nên hoàn thành đủ 3 mini project rồi mới nhảy sang framework hoặc thư viện khác.
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>
