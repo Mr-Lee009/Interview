@@ -1,0 +1,43 @@
+services:
+  oracle-db:
+    # Oracle Database Express Edition 21c.
+    # Pin cố định phiên bản để tránh việc image tự thay đổi ngoài ý muốn.
+    image: gvenzl/oracle-xe:21.3.0-slim
+    container_name: oracle-xe
+
+    # Tự khởi động lại container nếu Docker bị restart hoặc database bị dừng.
+    restart: unless-stopped
+
+    ports:
+      # Kết nối Oracle từ máy host qua localhost:1521.
+      - "1521:1521"
+      # Cổng giao diện quản trị Oracle Enterprise Manager Express.
+      - "5500:5500"
+
+    environment:
+      # Mật khẩu cho các tài khoản SYS, SYSTEM và PDBADMIN.
+      # Nên đổi giá trị này trước khi dùng trong môi trường chia sẻ.
+      ORACLE_PASSWORD: OracleDev123
+
+      # Tên Pluggable Database (PDB) dùng cho ứng dụng.
+      APP_USER: app_user
+      APP_USER_PASSWORD: AppUser123
+
+      # Tạo database với bộ ký tự Unicode, phù hợp dữ liệu tiếng Việt.
+      ORACLE_CHARACTERSET: AL32UTF8
+
+    volumes:
+      # Dữ liệu được giữ lại khi container bị xóa hoặc tạo lại.
+      - oracle-data:/opt/oracle/oradata
+
+    healthcheck:
+      # Chỉ báo container sẵn sàng khi Oracle đã mở và nhận kết nối.
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  # Docker-managed volume; xem volume bằng: docker volume ls
+  oracle-data:

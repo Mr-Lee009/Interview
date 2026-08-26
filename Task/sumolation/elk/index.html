@@ -1,0 +1,404 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELK Architecture Overview</title>
+    <style>
+        :root {
+            --bg: #eef4ff;
+            --panel: rgba(255,255,255,0.94);
+            --line: #dbe5f0;
+            --text: #10243e;
+            --muted: #60758b;
+            --beat: #0f766e;
+            --logstash: #ea580c;
+            --elastic: #2563eb;
+            --kibana: #7c3aed;
+            --accent: #16a34a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .page {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .hero, .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        .hero {
+            padding: 28px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 34px;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            margin: 0;
+            max-width: 920px;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .tag {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 22px;
+        }
+
+        .panel p {
+            margin: 0 0 12px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .panel ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            padding: 10px;
+        }
+
+        .diagram {
+            min-width: 860px;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+
+        .card p {
+            margin: 0 0 10px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .badge {
+            display: inline-block;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 8px;
+            border-radius: 999px;
+            margin-bottom: 12px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .mini {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .mini h4 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .mini ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .note {
+            margin-top: 12px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            padding: 14px;
+            color: #475569;
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+        }
+
+        @media (max-width: 1020px) {
+            .grid, .cards, .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <h1>ELK là gì và kiến trúc hoạt động ra sao?</h1>
+        <p class="subtitle">
+            ELK là bộ công cụ dùng để thu thập, xử lý, lưu trữ, tìm kiếm và trực quan hóa log hoặc dữ liệu sự kiện.
+            Trong thực tế, hệ thống thường mở rộng thêm <code>Beats</code>, vì vậy nhiều nơi gọi đầy đủ là <code>Elastic Stack</code>.
+        </p>
+        <div class="tags">
+            <span class="tag">#Elasticsearch</span>
+            <span class="tag">#Logstash</span>
+            <span class="tag">#Kibana</span>
+            <span class="tag">#Beats</span>
+            <span class="tag">#Observability</span>
+            <span class="tag">#Log Analytics</span>
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="panel">
+            <h2>ELK phục vụ công việc gì?</h2>
+            <p>
+                ELK phục vụ các bài toán quan sát hệ thống và khai thác dữ liệu vận hành. Mục tiêu cốt lõi là biến log từ dữ liệu thô thành dữ liệu có thể tra cứu, phân tích và trực quan hóa được.
+            </p>
+            <ul>
+                <li>Tập trung log từ nhiều server, nhiều service, nhiều môi trường.</li>
+                <li>Tìm kiếm log nhanh khi hệ thống có lỗi.</li>
+                <li>Phân tích nguyên nhân sự cố theo thời gian thực hoặc gần thời gian thực.</li>
+                <li>Theo dõi hành vi hệ thống, hiệu năng và cảnh báo bất thường.</li>
+                <li>Hỗ trợ audit, security monitoring và troubleshooting.</li>
+                <li>Tạo dashboard cho vận hành, DevOps, backend, security hoặc business analytics.</li>
+            </ul>
+            <div class="note">
+                Ví dụ: khi API lỗi <code>500</code>, ta có thể search theo <code>traceId</code>, <code>userId</code> hoặc <code>orderId</code> để lần ngược toàn bộ luồng xử lý.
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Vì sao ELK quan trọng?</h2>
+            <ul>
+                <li>Nếu không có ELK, log thường nằm rải rác trên nhiều máy.</li>
+                <li>Việc debug phải SSH vào từng server, rất chậm và khó đối chiếu.</li>
+                <li>Khó nối log giữa các service trong kiến trúc microservices.</li>
+                <li>Khó nhìn được bức tranh toàn cảnh giữa ứng dụng, hạ tầng và người dùng.</li>
+            </ul>
+            <div class="note">
+                Nói ngắn gọn, ELK là cầu nối giữa <strong>dữ liệu vận hành</strong> và <strong>khả năng ra quyết định</strong> trong debugging, monitoring và audit.
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-bottom: 18px;">
+        <h2>Kiến trúc tổng quát của ELK</h2>
+        <div class="diagram-wrap">
+            <svg class="diagram" viewBox="0 0 980 330" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+                    </marker>
+                </defs>
+
+                <rect x="20" y="90" width="150" height="110" rx="18" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+                <text x="95" y="125" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">Beats</text>
+                <text x="95" y="150" text-anchor="middle" font-size="13" fill="#64748b">Filebeat / Metricbeat</text>
+                <text x="95" y="170" text-anchor="middle" font-size="13" fill="#64748b">Thu thập log / metric</text>
+
+                <rect x="225" y="90" width="170" height="110" rx="18" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+                <text x="310" y="125" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">Logstash</text>
+                <text x="310" y="150" text-anchor="middle" font-size="13" fill="#64748b">Input / Filter / Output</text>
+                <text x="310" y="170" text-anchor="middle" font-size="13" fill="#64748b">Parse, transform, enrich</text>
+
+                <rect x="450" y="70" width="210" height="150" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+                <text x="555" y="115" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">Elasticsearch</text>
+                <text x="555" y="145" text-anchor="middle" font-size="13" fill="#64748b">Lưu trữ document JSON</text>
+                <text x="555" y="165" text-anchor="middle" font-size="13" fill="#64748b">Index, search, filter, aggregate</text>
+                <text x="555" y="185" text-anchor="middle" font-size="13" fill="#64748b">Cluster, shard, scaling</text>
+
+                <rect x="720" y="90" width="180" height="110" rx="18" fill="#faf5ff" stroke="#7c3aed" stroke-width="2"/>
+                <text x="810" y="125" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">Kibana</text>
+                <text x="810" y="150" text-anchor="middle" font-size="13" fill="#64748b">Search và Dashboard</text>
+                <text x="810" y="170" text-anchor="middle" font-size="13" fill="#64748b">Visualization và Alert</text>
+
+                <path d="M170 145 L225 145" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+                <path d="M395 145 L450 145" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+                <path d="M660 145 L720 145" stroke="#94a3b8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+                <rect x="110" y="245" width="750" height="46" rx="14" fill="#f8fafc" stroke="#dbe5f0" stroke-dasharray="6 6"/>
+                <text x="485" y="273" text-anchor="middle" font-size="14" fill="#475569">
+                    Application / Server / Container → Beats hoặc Logstash → Elasticsearch → Kibana
+                </text>
+            </svg>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><span class="legend-dot" style="background: var(--beat);"></span> Thu thập dữ liệu</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--logstash);"></span> Xử lý dữ liệu</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--elastic);"></span> Lưu trữ và tìm kiếm</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--kibana);"></span> Trực quan hóa</div>
+        </div>
+    </section>
+
+    <section class="cards">
+        <article class="card">
+            <span class="badge" style="background: var(--beat);">Agent nhẹ</span>
+            <h3>Beats</h3>
+            <p>Beats là các agent nhẹ dùng để đẩy log, metric hoặc network data về Elastic Stack.</p>
+            <ul>
+                <li><code>Filebeat</code>: ship log file</li>
+                <li><code>Metricbeat</code>: ship metric hệ thống</li>
+                <li><code>Packetbeat</code>: ship network data</li>
+                <li><code>Winlogbeat</code>: ship Windows event log</li>
+            </ul>
+        </article>
+
+        <article class="card">
+            <span class="badge" style="background: var(--logstash);">Ingest pipeline</span>
+            <h3>Logstash</h3>
+            <p>Logstash nhận dữ liệu từ nhiều nguồn, chuẩn hóa và enrich dữ liệu trước khi ghi sang nơi lưu trữ.</p>
+            <ul>
+                <li><code>input</code>: nhận dữ liệu</li>
+                <li><code>filter</code>: parse, transform, enrich</li>
+                <li><code>output</code>: ghi ra Elasticsearch hoặc đích khác</li>
+            </ul>
+        </article>
+
+        <article class="card">
+            <span class="badge" style="background: var(--elastic);">Lõi tìm kiếm</span>
+            <h3>Elasticsearch</h3>
+            <p>Elasticsearch là nơi lưu trữ document JSON và trả lời truy vấn tìm kiếm, filter, aggregate với tốc độ cao.</p>
+            <ul>
+                <li>Full-text search</li>
+                <li>Filter theo trường</li>
+                <li>Aggregation thống kê</li>
+                <li>Cluster, shard, scale ngang</li>
+            </ul>
+        </article>
+
+        <article class="card">
+            <span class="badge" style="background: var(--kibana);">Giao diện phân tích</span>
+            <h3>Kibana</h3>
+            <p>Kibana là nơi con người làm việc trực tiếp với dữ liệu: search log, xem timeline, dashboard và cảnh báo.</p>
+            <ul>
+                <li>Khám phá log theo UI</li>
+                <li>Dashboard và chart</li>
+                <li>Phân tích theo thời gian</li>
+                <li>Alert nếu hệ thống có cấu hình phù hợp</li>
+            </ul>
+        </article>
+    </section>
+
+    <section class="summary">
+        <div class="mini">
+            <h4>ELK hỗ trợ ai?</h4>
+            <ul>
+                <li>Backend Developer: tra cứu lỗi, đối chiếu log giữa nhiều service</li>
+                <li>DevOps/SRE: vận hành, monitoring, incident response</li>
+                <li>Security: audit log, phát hiện bất thường</li>
+                <li>Business/Product: xem event nghiệp vụ nếu log có cấu trúc phù hợp</li>
+            </ul>
+        </div>
+
+        <div class="mini">
+            <h4>Điểm mạnh</h4>
+            <ul>
+                <li>Tìm kiếm log mạnh và nhanh</li>
+                <li>Hỗ trợ gần thời gian thực</li>
+                <li>Kibana trực quan</li>
+                <li>Hệ sinh thái rộng, phổ biến trong vận hành hệ thống</li>
+            </ul>
+        </div>
+
+        <div class="mini">
+            <h4>Lưu ý khi triển khai</h4>
+            <ul>
+                <li>Chi phí tài nguyên, đặc biệt là Elasticsearch</li>
+                <li>Quản trị index, shard, retention, lifecycle</li>
+                <li>Chuẩn hóa format log ngay từ đầu</li>
+                <li>Monitoring cho chính cụm ELK</li>
+            </ul>
+        </div>
+    </section>
+</div>
+</body>
+</html>
