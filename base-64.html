@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 Encode / Decode</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(900px, 100%);
+      background: #fff;
+      border: 1px solid #dce3ef;
+      border-radius: 14px;
+      box-shadow: 0 12px 34px rgb(32 59 107 / 10%);
+      padding: clamp(20px, 4vw, 36px);
+    }
+
+    h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); }
+    p { color: #5d6b82; line-height: 1.55; margin: 8px 0 24px; }
+
+    .panes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    label { display: block; font-weight: 650; margin-bottom: 8px; }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      padding: 12px;
+      border: 1px solid #bcc8da;
+      border-radius: 8px;
+      color: inherit;
+      font: 0.95rem/1.45 Consolas, "Courier New", monospace;
+    }
+
+    textarea:focus {
+      outline: 3px solid rgb(37 99 235 / 18%);
+      border-color: #2563eb;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    button:hover { background: #1d4ed8; }
+    button.secondary { background: #e8eef9; color: #24416f; }
+    button.secondary:hover { background: #d8e4f7; }
+
+    #message {
+      min-height: 24px;
+      margin: 12px 0 0;
+      text-align: center;
+      color: #237044;
+    }
+
+    #message.error { color: #b42318; }
+
+    @media (max-width: 650px) {
+      body { padding: 12px; }
+      .panes { grid-template-columns: 1fr; }
+      textarea { min-height: 165px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Base64 Encode / Decode</h1>
+    <p>Nhập nội dung, sau đó chọn mã hóa hoặc giải mã. Hỗ trợ tiếng Việt và ký tự Unicode.</p>
+
+    <div class="panes">
+      <section>
+        <label for="input">Nội dung đầu vào</label>
+        <textarea id="input" placeholder="Ví dụ: Xin chào Việt Nam"></textarea>
+      </section>
+      <section>
+        <label for="output">Kết quả</label>
+        <textarea id="output" readonly placeholder="Kết quả sẽ xuất hiện ở đây"></textarea>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="encode">Encode →</button>
+      <button type="button" id="decode">Decode →</button>
+      <button type="button" class="secondary" id="copy">Sao chép kết quả</button>
+      <button type="button" class="secondary" id="swap">Đổi ô</button>
+      <button type="button" class="secondary" id="clear">Xóa</button>
+    </div>
+
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const message = document.getElementById('message');
+
+    function showMessage(text, isError = false) {
+      message.textContent = text;
+      message.classList.toggle('error', isError);
+    }
+
+    function encodeBase64(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      return btoa(binary);
+    }
+
+    function decodeBase64(base64) {
+      const normalized = base64.replace(/\s/g, '');
+      const binary = atob(normalized);
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    }
+
+    document.getElementById('encode').addEventListener('click', () => {
+      output.value = encodeBase64(input.value);
+      showMessage('Đã mã hóa Base64.');
+    });
+
+    document.getElementById('decode').addEventListener('click', () => {
+      try {
+        output.value = decodeBase64(input.value);
+        showMessage('Đã giải mã Base64.');
+      } catch {
+        output.value = '';
+        showMessage('Chuỗi Base64 không hợp lệ hoặc không phải UTF-8.', true);
+      }
+    });
+
+    document.getElementById('copy').addEventListener('click', async () => {
+      if (!output.value) {
+        showMessage('Chưa có kết quả để sao chép.', true);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(output.value);
+        showMessage('Đã sao chép kết quả.');
+      } catch {
+        output.select();
+        document.execCommand('copy');
+        showMessage('Đã sao chép kết quả.');
+      }
+    });
+
+    document.getElementById('swap').addEventListener('click', () => {
+      input.value = output.value;
+      output.value = '';
+      input.focus();
+      showMessage('Đã chuyển kết quả sang ô đầu vào.');
+    });
+
+    document.getElementById('clear').addEventListener('click', () => {
+      input.value = '';
+      output.value = '';
+      input.focus();
+      showMessage('');
+    });
+  </script>
+</body>
+</html>

@@ -28,7 +28,9 @@ services:
 
     volumes:
       # Dữ liệu được giữ lại khi container bị xóa hoặc tạo lại.
-      - oracle-data:/opt/oracle/oradata
+      # Bind mount sang thư mục trên máy host; dữ liệu vẫn còn khi xóa/tạo lại container.
+      # Thư mục thực tế: Task/SQL/Oracle/oracle-data
+      - ./oracle-data:/opt/oracle/oradata
 
     healthcheck:
       # Chỉ báo container sẵn sàng khi Oracle đã mở và nhận kết nối.
